@@ -1,0 +1,19 @@
+# Datos: no se suben (8 GB). Se descargan con scripts/download_data.py
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Python
+__pycache__/
+*.pyc
+
+# Archivos que crea Spark al trabajar en local
+spark-warehouse/
+metastore_db/
+derby.log
+
+# Windows y editores
+Thumbs.db
+desktop.ini
+.vscode/

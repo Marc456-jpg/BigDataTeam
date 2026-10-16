@@ -1,0 +1,8 @@
+# Todos los archivos de texto se guardan con saltos de linea de Linux (LF),
+# porque el codigo se ejecuta dentro de contenedores Linux.
+* text=auto eol=lf
+
+# Archivos binarios: Git no debe tocarlos
+*.png binary
+*.jpg binary
+*.parquet binary
