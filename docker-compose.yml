@@ -1,0 +1,141 @@
+# =====================================================================
+#  docker-compose.yml del proyecto Steam Reviews (Entrega 1)
+#  Equipo: Manu, Marc y Nora
+#
+#  VERSION ACTUAL (mini-paso 1.4b): HDFS + Spark (con hostnames y chequeos de salud)
+#    - namenode     : el indice de HDFS (web en http://localhost:9870)
+#    - datanode1    : guarda bloques (copia 1)
+#    - datanode2    : guarda bloques (copia 2)
+#    - spark-master : reparte el trabajo de Spark (web en http://localhost:8080)
+#    - spark-worker : ejecuta las tasks de Spark (web en http://localhost:8081)
+#  En los siguientes mini-pasos se anadiran Jupyter y YARN.
+#
+#  Basado en el docker-compose.yml del profesor (docker/docker-compose.yml)
+# =====================================================================
+
+# Nombre del proyecto: Docker lo usa como prefijo de redes y volumenes
+# (por ejemplo, el volumen "steam-bigdata_hadoop_namenode").
+name: steam-bigdata
+
+services:
+
+  # ------------------------------------------------------------------
+  # NameNode: sabe DONDE esta cada bloque. Nunca guarda datos.
+  # ------------------------------------------------------------------
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    hostname: namenode             # nombre legible dentro de la red (en vez del ID del contenedor)
+    restart: unless-stopped        # se reinicia solo, salvo si lo paramos a mano
+    ports:
+      - "9870:9870"                # web del NameNode
+      - "9000:9000"                # puerto por el que los clientes hablan con HDFS
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name   # el indice se guarda en un volumen (no se pierde al apagar)
+    environment:
+      - CLUSTER_NAME=steam
+      - HDFS_CONF_dfs_replication=2                          # 2 copias de cada bloque
+      - HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000  # detecta un DataNode caido en ~20 s
+      - HDFS_CONF_dfs_heartbeat_interval=1                   # cada DataNode avisa cada 1 s
+    env_file:
+      - ./docker/hadoop.env
+    mem_limit: 1g                  # maximo de RAM para este contenedor
+
+  # ------------------------------------------------------------------
+  # DataNodes: guardan los bloques de datos (2 nodos -> replicacion 2)
+  # ------------------------------------------------------------------
+  datanode1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode1
+    hostname: datanode1            # asi la web de HDFS y "hdfs fsck" muestran "datanode1" y no un ID
+    restart: unless-stopped
+    volumes:
+      - hadoop_datanode1:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"   # espera a que el NameNode este listo
+      HDFS_CONF_dfs_replication: 2
+    env_file:
+      - ./docker/hadoop.env
+    mem_limit: 768m
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode2
+    hostname: datanode2            # asi la web de HDFS y "hdfs fsck" muestran "datanode2" y no un ID
+    restart: unless-stopped
+    volumes:
+      - hadoop_datanode2:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: "namenode:9870"
+      HDFS_CONF_dfs_replication: 2
+    env_file:
+      - ./docker/hadoop.env
+    mem_limit: 768m
+
+  # ------------------------------------------------------------------
+  # Spark: master (reparte el trabajo) y worker (lo ejecuta).
+  # Usan EXACTAMENTE la misma imagen que Jupyter (fijada por su digest)
+  # para que Spark (4.2.0) y Python (3.13.15) coincidan en todos lados.
+  # ------------------------------------------------------------------
+  spark-master:
+    image: quay.io/jupyter/pyspark-notebook@sha256:7cad53570e4d168b17a453d190601c677a08836992f8b04888a627a5532e3614
+    container_name: spark-master
+    hostname: spark-master
+    restart: unless-stopped
+    command:
+      - /usr/local/spark/bin/spark-class
+      - org.apache.spark.deploy.master.Master
+      - --host
+      - spark-master
+      - --port
+      - "7077"                       # puerto por el que los workers y Jupyter hablan con el master
+      - --webui-port
+      - "8080"
+    ports:
+      - "8080:8080"                  # web del master
+    environment:
+      - SPARK_DAEMON_MEMORY=512m     # memoria de Java del propio master
+    healthcheck:                     # "sano" = su web responde (sustituye al chequeo de Jupyter de la imagen)
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://spark-master:8080', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: 768m
+
+  spark-worker:
+    image: quay.io/jupyter/pyspark-notebook@sha256:7cad53570e4d168b17a453d190601c677a08836992f8b04888a627a5532e3614
+    container_name: spark-worker
+    hostname: spark-worker
+    restart: unless-stopped
+    depends_on:
+      - spark-master
+    command:
+      - /usr/local/spark/bin/spark-class
+      - org.apache.spark.deploy.worker.Worker
+      - spark://spark-master:7077    # direccion del master al que se apunta
+      - --host
+      - spark-worker
+      - --webui-port
+      - "8081"
+    ports:
+      - "8081:8081"                  # web del worker
+    environment:
+      - SPARK_WORKER_CORES=4         # tasks que puede ejecutar a la vez
+      - SPARK_WORKER_MEMORY=2g       # memoria que ofrece a los executors
+      - SPARK_DAEMON_MEMORY=512m     # memoria de Java del propio worker
+      - SPARK_WORKER_DIR=/tmp/spark-work   # carpeta de trabajo con permisos de escritura
+    healthcheck:                     # "sano" = su web responde
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://spark-worker:8081', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    mem_limit: 2816m                 # 2 GB executors + 512 MB worker + margen
+
+# Volumenes: "discos" de Docker donde se guardan los datos de HDFS.
+# Sobreviven a "docker compose down"; solo se borran con "docker compose down -v".
+volumes:
+  hadoop_namenode:
+  hadoop_datanode1:
+  hadoop_datanode2:
