@@ -2,13 +2,18 @@
 #  docker-compose.yml del proyecto Steam Reviews (Entrega 1)
 #  Equipo: Manu, Marc y Nora
 #
-#  VERSION ACTUAL (mini-paso 1.4b): HDFS + Spark (con hostnames y chequeos de salud)
+#  VERSION ACTUAL (mini-paso 1.4e): HDFS + Spark + YARN (este ultimo en el perfil "yarn")
+#  Arranque normal (HDFS + Spark):      docker compose up -d
+#  Con YARN (solo para MapReduce):      docker compose --profile yarn up -d
+#  Parar YARN:                          docker compose --profile yarn stop resourcemanager nodemanager
 #    - namenode     : el indice de HDFS (web en http://localhost:9870)
 #    - datanode1    : guarda bloques (copia 1)
 #    - datanode2    : guarda bloques (copia 2)
 #    - spark-master : reparte el trabajo de Spark (web en http://localhost:8080)
 #    - spark-worker : ejecuta las tasks de Spark (web en http://localhost:8081)
-#  En los siguientes mini-pasos se anadiran Jupyter y YARN.
+#    - resourcemanager (perfil yarn): reparte memoria y CPU a MapReduce (web en http://localhost:8088)
+#    - nodemanager     (perfil yarn): ejecuta las tareas de MapReduce (con Python 3 para Hadoop Streaming)
+#  En el siguiente mini-paso se anadira Jupyter.
 #
 #  Basado en el docker-compose.yml del profesor (docker/docker-compose.yml)
 # =====================================================================
@@ -30,13 +35,19 @@ services:
     ports:
       - "9870:9870"                # web del NameNode
       - "9000:9000"                # puerto por el que los clientes hablan con HDFS
+    # Script de arranque propio (igual que el de la imagen, pero con "exec"):
+    # asi Java es el proceso 1 y se apaga ordenadamente (codigo 143, no 137)
+    command: ["/bin/bash", "/opt/steam/run-namenode.sh"]
     volumes:
       - hadoop_namenode:/hadoop/dfs/name   # el indice se guarda en un volumen (no se pierde al apagar)
+      - ./docker/run-namenode.sh:/opt/steam/run-namenode.sh:ro   # ":ro" = solo lectura
+      - ./data:/data:ro                    # el CSV original, visible en /data para subirlo a HDFS (solo lectura)
     environment:
       - CLUSTER_NAME=steam
+      - HADOOP_HEAPSIZE_MAX=512m       # tope de memoria de Java (-Xmx); el contenedor tiene 1 GB
       - HDFS_CONF_dfs_replication=2                          # 2 copias de cada bloque
-      - HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000  # detecta un DataNode caido en ~20 s
-      - HDFS_CONF_dfs_heartbeat_interval=1                   # cada DataNode avisa cada 1 s
+      - HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000  # con el latido de 1 s: nodo caido detectado en ~14-20 s (por defecto ~10 min)
+      - HDFS_CONF_dfs_heartbeat_interval=1                   # latido de 1 s (los DataNodes tambien lo llevan, ver abajo)
     env_file:
       - ./docker/hadoop.env
     mem_limit: 1g                  # maximo de RAM para este contenedor
@@ -49,11 +60,15 @@ services:
     container_name: datanode1
     hostname: datanode1            # asi la web de HDFS y "hdfs fsck" muestran "datanode1" y no un ID
     restart: unless-stopped
+    command: ["/bin/bash", "/opt/steam/run-datanode.sh"]   # arranque con "exec" (ver namenode)
     volumes:
       - hadoop_datanode1:/hadoop/dfs/data
+      - ./docker/run-datanode.sh:/opt/steam/run-datanode.sh:ro
     environment:
       SERVICE_PRECONDITION: "namenode:9870"   # espera a que el NameNode este listo
       HDFS_CONF_dfs_replication: 2
+      HDFS_CONF_dfs_heartbeat_interval: 1     # latido ('sigo vivo') cada 1 s, igual que espera el NameNode
+      HADOOP_HEAPSIZE_MAX: 384m               # tope de memoria de Java (-Xmx); el contenedor tiene 768 MB
     env_file:
       - ./docker/hadoop.env
     mem_limit: 768m
@@ -63,11 +78,15 @@ services:
     container_name: datanode2
     hostname: datanode2            # asi la web de HDFS y "hdfs fsck" muestran "datanode2" y no un ID
     restart: unless-stopped
+    command: ["/bin/bash", "/opt/steam/run-datanode.sh"]   # arranque con "exec" (ver namenode)
     volumes:
       - hadoop_datanode2:/hadoop/dfs/data
+      - ./docker/run-datanode.sh:/opt/steam/run-datanode.sh:ro
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
       HDFS_CONF_dfs_replication: 2
+      HDFS_CONF_dfs_heartbeat_interval: 1
+      HADOOP_HEAPSIZE_MAX: 384m
     env_file:
       - ./docker/hadoop.env
     mem_limit: 768m
@@ -132,6 +151,48 @@ services:
       retries: 3
       start_period: 30s
     mem_limit: 2816m                 # 2 GB executors + 512 MB worker + margen
+
+  # ------------------------------------------------------------------
+  # YARN (perfil "yarn"): NO arranca con "docker compose up".
+  # Se enciende solo para MapReduce (parte C) con:
+  #     docker compose --profile yarn up -d
+  # Motivo: con Spark trabajando, tener YARN encendido dejaria la memoria
+  # al limite (ver seccion 10 del documento explicativo).
+  # ------------------------------------------------------------------
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    hostname: resourcemanager
+    profiles: ["yarn"]
+    restart: unless-stopped
+    command: ["/bin/bash", "/opt/steam/run-resourcemanager.sh"]   # arranque con "exec" (ver namenode)
+    ports:
+      - "8088:8088"                  # web de YARN (aplicaciones y su estado)
+    volumes:
+      - ./docker/run-resourcemanager.sh:/opt/steam/run-resourcemanager.sh:ro
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864"
+      HADOOP_HEAPSIZE_MAX: 512m      # tope de memoria de Java
+    env_file:
+      - ./docker/hadoop.env
+    mem_limit: 1g                    # Java 512 MB + memoria fuera del heap; en reposo ya usa ~410 MB (medido el 17 oct)
+
+  nodemanager:
+    build: ./docker/nodemanager      # imagen del profesor + Python 3 (ver docker/nodemanager/Dockerfile)
+    image: steam-bigdata/hadoop-nodemanager-python:1.0
+    container_name: nodemanager
+    hostname: nodemanager
+    profiles: ["yarn"]
+    restart: unless-stopped
+    command: ["/bin/bash", "/opt/steam/run-nodemanager.sh"]       # arranque con "exec" (ver namenode)
+    volumes:
+      - ./docker/run-nodemanager.sh:/opt/steam/run-nodemanager.sh:ro
+    environment:
+      SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode1:9864 datanode2:9864 resourcemanager:8088"
+      HADOOP_HEAPSIZE_MAX: 384m      # Java del propio NodeManager (las tareas van aparte)
+    env_file:
+      - ./docker/hadoop.env
+    mem_limit: 2816m                 # 2048 MB para tareas (hadoop.env) + 384 MB del NodeManager + margen
 
 # Volumenes: "discos" de Docker donde se guardan los datos de HDFS.
 # Sobreviven a "docker compose down"; solo se borran con "docker compose down -v".
