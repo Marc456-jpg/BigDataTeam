@@ -1,0 +1,192 @@
+== Physical Plan ==
+AdaptiveSparkPlan (33)
++- == Final Plan ==
+   ResultQueryStage (20)
+   +- TakeOrderedAndProject (19)
+      +- * Project (18)
+         +- * Filter (17)
+            +- * HashAggregate (16)
+               +- AQEShuffleRead (15), coalesced
+                  +- ShuffleQueryStage (14), Statistics(sizeInBytes=504.5 KiB, rowCount=8.45E+3)
+                     +- Exchange (13)
+                        +- * HashAggregate (12)
+                           +- * Project (11)
+                              +- * BroadcastHashJoin Inner BuildRight (10)
+                                 :- * Project (4)
+                                 :  +- * Filter (3)
+                                 :     +- * ColumnarToRow (2)
+                                 :        +- Scan parquet  (1)
+                                 +- BroadcastQueryStage (9), Statistics(sizeInBytes=32.0 MiB, rowCount=315)
+                                    +- BroadcastExchange (8)
+                                       +- * Filter (7)
+                                          +- * ColumnarToRow (6)
+                                             +- Scan parquet  (5)
++- == Initial Plan ==
+   TakeOrderedAndProject (32)
+   +- Project (31)
+      +- Filter (30)
+         +- HashAggregate (29)
+            +- Exchange (28)
+               +- HashAggregate (27)
+                  +- Project (26)
+                     +- BroadcastHashJoin Inner BuildRight (25)
+                        :- Project (22)
+                        :  +- Filter (21)
+                        :     +- Scan parquet  (1)
+                        +- BroadcastExchange (24)
+                           +- Filter (23)
+                              +- Scan parquet  (5)
+
+
+(1) Scan parquet 
+Output [3]: [app_id#187, recommended#192, year#211]
+Batched: true
+Location: InMemoryFileIndex [hdfs://namenode:9000/curada/reviews]
+PushedFilters: [IsNotNull(app_id)]
+ReadSchema: struct<app_id:int,recommended:boolean>
+
+(2) ColumnarToRow [codegen id : 2]
+Input [3]: [app_id#187, recommended#192, year#211]
+
+(3) Filter [codegen id : 2]
+Input [3]: [app_id#187, recommended#192, year#211]
+Condition : isnotnull(app_id#187)
+
+(4) Project [codegen id : 2]
+Output [2]: [app_id#187, recommended#192]
+Input [3]: [app_id#187, recommended#192, year#211]
+
+(5) Scan parquet 
+Output [2]: [app_id#213, nombre#215]
+Batched: true
+Location: InMemoryFileIndex [hdfs://namenode:9000/curada/games]
+PushedFilters: [IsNotNull(app_id)]
+ReadSchema: struct<app_id:int,nombre:string>
+
+(6) ColumnarToRow [codegen id : 1]
+Input [2]: [app_id#213, nombre#215]
+
+(7) Filter [codegen id : 1]
+Input [2]: [app_id#213, nombre#215]
+Condition : isnotnull(app_id#213)
+
+(8) BroadcastExchange
+Input [2]: [app_id#213, nombre#215]
+Arguments: HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=743]
+
+(9) BroadcastQueryStage
+Output [2]: [app_id#213, nombre#215]
+Arguments: 0
+
+(10) BroadcastHashJoin [codegen id : 2]
+Left keys [1]: [app_id#187]
+Right keys [1]: [app_id#213]
+Join type: Inner
+Join condition: None
+
+(11) Project [codegen id : 2]
+Output [3]: [app_id#187, recommended#192, nombre#215]
+Input [4]: [app_id#187, recommended#192, app_id#213, nombre#215]
+
+(12) HashAggregate [codegen id : 2]
+Input [3]: [app_id#187, recommended#192, nombre#215]
+Keys [2]: [app_id#187, nombre#215]
+Functions [2]: [partial_count(1), partial_sum(cast(recommended#192 as int))]
+Aggregate Attributes [2]: [count#234L, sum#235L]
+Results [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+
+(13) Exchange
+Input [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Arguments: hashpartitioning(app_id#187, nombre#215, 32), ENSURE_REQUIREMENTS, [plan_id=813]
+
+(14) ShuffleQueryStage
+Output [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Arguments: 1
+
+(15) AQEShuffleRead
+Input [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Arguments: coalesced
+
+(16) HashAggregate [codegen id : 3]
+Input [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Keys [2]: [app_id#187, nombre#215]
+Functions [2]: [count(1), sum(cast(recommended#192 as int))]
+Aggregate Attributes [2]: [count(1)#231L, sum(cast(recommended#192 as int))#232L]
+Results [4]: [app_id#187, nombre#215, count(1)#231L AS resenas#226L, sum(cast(recommended#192 as int))#232L AS positivas#227L]
+
+(17) Filter [codegen id : 3]
+Input [4]: [app_id#187, nombre#215, resenas#226L, positivas#227L]
+Condition : (resenas#226L >= 1000)
+
+(18) Project [codegen id : 3]
+Output [4]: [app_id#187, nombre#215, resenas#226L, round(((cast(positivas#227L as double) * 100.0) / cast(resenas#226L as double)), 2) AS pct_positivas#233]
+Input [4]: [app_id#187, nombre#215, resenas#226L, positivas#227L]
+
+(19) TakeOrderedAndProject
+Input [4]: [app_id#187, nombre#215, resenas#226L, pct_positivas#233]
+Arguments: 10, [pct_positivas#233 DESC NULLS LAST, resenas#226L DESC NULLS LAST, app_id#187 ASC NULLS FIRST], [app_id#187, nombre#215, pct_positivas#233, resenas#226L]
+
+(20) ResultQueryStage
+Output [4]: [app_id#187, nombre#215, pct_positivas#233, resenas#226L]
+Arguments: 2
+
+(21) Filter
+Input [3]: [app_id#187, recommended#192, year#211]
+Condition : isnotnull(app_id#187)
+
+(22) Project
+Output [2]: [app_id#187, recommended#192]
+Input [3]: [app_id#187, recommended#192, year#211]
+
+(23) Filter
+Input [2]: [app_id#213, nombre#215]
+Condition : isnotnull(app_id#213)
+
+(24) BroadcastExchange
+Input [2]: [app_id#213, nombre#215]
+Arguments: HashedRelationBroadcastMode(List(cast(input[0, int, false] as bigint)),false), [plan_id=709]
+
+(25) BroadcastHashJoin
+Left keys [1]: [app_id#187]
+Right keys [1]: [app_id#213]
+Join type: Inner
+Join condition: None
+
+(26) Project
+Output [3]: [app_id#187, recommended#192, nombre#215]
+Input [4]: [app_id#187, recommended#192, app_id#213, nombre#215]
+
+(27) HashAggregate
+Input [3]: [app_id#187, recommended#192, nombre#215]
+Keys [2]: [app_id#187, nombre#215]
+Functions [2]: [partial_count(1), partial_sum(cast(recommended#192 as int))]
+Aggregate Attributes [2]: [count#234L, sum#235L]
+Results [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+
+(28) Exchange
+Input [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Arguments: hashpartitioning(app_id#187, nombre#215, 32), ENSURE_REQUIREMENTS, [plan_id=714]
+
+(29) HashAggregate
+Input [4]: [app_id#187, nombre#215, count#236L, sum#237L]
+Keys [2]: [app_id#187, nombre#215]
+Functions [2]: [count(1), sum(cast(recommended#192 as int))]
+Aggregate Attributes [2]: [count(1)#231L, sum(cast(recommended#192 as int))#232L]
+Results [4]: [app_id#187, nombre#215, count(1)#231L AS resenas#226L, sum(cast(recommended#192 as int))#232L AS positivas#227L]
+
+(30) Filter
+Input [4]: [app_id#187, nombre#215, resenas#226L, positivas#227L]
+Condition : (resenas#226L >= 1000)
+
+(31) Project
+Output [4]: [app_id#187, nombre#215, resenas#226L, round(((cast(positivas#227L as double) * 100.0) / cast(resenas#226L as double)), 2) AS pct_positivas#233]
+Input [4]: [app_id#187, nombre#215, resenas#226L, positivas#227L]
+
+(32) TakeOrderedAndProject
+Input [4]: [app_id#187, nombre#215, resenas#226L, pct_positivas#233]
+Arguments: 10, [pct_positivas#233 DESC NULLS LAST, resenas#226L DESC NULLS LAST, app_id#187 ASC NULLS FIRST], [app_id#187, nombre#215, pct_positivas#233, resenas#226L]
+
+(33) AdaptiveSparkPlan
+Output [4]: [app_id#187, nombre#215, pct_positivas#233, resenas#226L]
+Arguments: isFinalPlan=true
+
