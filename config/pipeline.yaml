@@ -87,3 +87,16 @@ etl:
   fecha_maxima: "2021-12-31"
   # Informe de calidad de datos (en HDFS, zona resultados)
   informe_calidad: /resultados/calidad/etl_reviews.json
+
+mapreduce:
+  # Entrada del job de MapReduce (apartado C): una linea por resena con
+  # "app_id<TAB>recommended". La crea src/procesamiento/exportar_entrada_mapreduce.py
+  # a partir de la zona curada. Hace falta porque Hadoop Streaming lee linea a
+  # linea y el CSV original tiene saltos de linea dentro de las resenas.
+  entrada: /curada/mapreduce_entrada
+  # Numero de archivos de esa entrada (= numero de tareas map en Hadoop)
+  archivos_entrada: 8
+  # Resultado: "app_id<TAB>resenas<TAB>positivas<TAB>porcentaje" por juego
+  salida: /resultados/mapreduce/positivos_por_juego
+  # Resultado del mismo calculo hecho con RDDs de Spark (para comparar)
+  salida_rdd: /resultados/rdd/positivos_por_juego
