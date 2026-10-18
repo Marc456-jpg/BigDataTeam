@@ -1,5 +1,10 @@
-# Datos: no se suben (8 GB). Se descargan con scripts/download_data.py
+# Datos: no se suben (8 GB). Se descargan con scripts/descargar_dataset.py
 data/
+
+# Credenciales de Kaggle (access_token o kaggle.json): NUNCA se suben a GitHub
+secrets/
+kaggle.json
+access_token
 
 # Jupyter
 .ipynb_checkpoints/

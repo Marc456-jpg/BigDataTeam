@@ -1,0 +1,41 @@
+# =====================================================================
+# config/pipeline.yaml
+# Configuracion del pipeline del proyecto Steam Reviews.
+#
+# Por que existe este archivo: el apartado E del enunciado pide que las
+# rutas y los parametros (ubicacion de los datos, columna de particion...)
+# esten en un archivo de configuracion SEPARADO del codigo, no escritos
+# dentro de los scripts. Asi, para cambiar una ruta no hay que tocar codigo.
+#
+# Quien lo lee: scripts/descargar_dataset.py y, mas adelante, la ingesta
+# a HDFS, el ETL, las consultas y el ML. Se iran anadiendo secciones.
+#
+# Formato YAML: "clave: valor", y la sangria (2 espacios) indica que una
+# clave esta dentro de otra. Lo que va detras de "#" es un comentario.
+# =====================================================================
+
+dataset:
+  # Identificador del dataset en Kaggle, con la forma <propietario>/<nombre>
+  kaggle_id: najzeko/steam-reviews-2021
+  # Nombre del CSV que viene dentro del zip de Kaggle
+  archivo: steam_reviews.csv
+  # Tamano exacto del CSV en bytes. Sirve para dos cosas:
+  #   1) comprobar que la descarga (o la subida a HDFS) esta completa;
+  #   2) no repetirla si ya esta hecha (re-ejecuciones idempotentes).
+  tamano_bytes: 8171787229
+
+local:
+  # Carpeta (relativa a la raiz del repositorio) donde se guarda el CSV.
+  # Esta en .gitignore: el dataset NUNCA se sube a GitHub.
+  carpeta_datos: data
+  # Carpeta con las credenciales de Kaggle (access_token o kaggle.json).
+  # Tambien esta en .gitignore: las claves NUNCA se suben a GitHub.
+  carpeta_secretos: secrets
+
+hdfs:
+  # Direccion del NameNode: nombre del contenedor + puerto de HDFS
+  namenode: hdfs://namenode:9000
+  # Zonas de HDFS (decision 39 del documento explicativo)
+  raw: /raw
+  curada: /curada
+  resultados: /resultados
