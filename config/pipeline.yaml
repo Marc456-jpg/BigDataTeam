@@ -127,3 +127,24 @@ consultas:
   # y cuantos juegos por idioma
   q3_anio: 2020
   q3_top: 5
+
+ml:
+  # Modelo de la decision 50: LogisticRegression que predice "recommended"
+  # (si la resena recomienda el juego). Lo entrena src/ml/modelo_recomendacion.py
+  # Parte de las resenas que se usan (1.0 = todas). Se puede cambiar al
+  # lanzarlo con --fraccion (por ejemplo 0.1 para medir el tiempo con el 10 %)
+  fraccion: 1.0
+  # Parte de los datos que se aparta para evaluar (el resto, para entrenar)
+  proporcion_test: 0.2
+  # Semilla del azar: con la misma semilla salen la misma muestra y la misma
+  # separacion entrenamiento/prueba (resultados repetibles)
+  semilla: 42
+  # Idiomas con columna propia (los mas frecuentes); el resto cuenta como "otros"
+  idiomas_top: 10
+  # Un genero tiene columna propia si lo tiene al menos este % de los juegos
+  min_pct_juegos_genero: 10
+  # Maximo de iteraciones del entrenamiento (para antes si ya ha convergido)
+  iteraciones_max: 50
+  # Resultados (zona resultados de HDFS)
+  salida_informe: /resultados/ml/regresion_logistica.json
+  salida_modelo: /resultados/ml/modelo_regresion_logistica
