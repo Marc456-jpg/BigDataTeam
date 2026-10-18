@@ -9,7 +9,14 @@ una línea por juego: {"app_id": ..., "descargado_utc": ..., "respuesta": {...}}
 
 Salida: /curada/games, una fila por juego, con estas columnas:
     app_id, en_tienda, nombre, tipo, es_gratis, precio_usd, generos,
-    genero_principal, desarrolladores, editores, fecha_salida, descargado_utc
+    num_generos, desarrolladores, editores, fecha_salida, descargado_utc
+
+Decisión 49 (18 oct): NO hay columna «genero_principal». Cada juego tiene
+varios géneros a la vez (≈ 2,4 de media) y Steam pone «Action» primero en 178
+de sus 179 juegos, así que quedarse con el primer género escondía el resto
+(p. ej. Indie: está en 141 juegos, pero solo era el primero en 26). Se guarda
+la lista completa «generos» y cuántos tiene cada juego («num_generos»); las
+columnas sí/no por género se crean donde se usan (consultas y ML).
 
 Como en el ETL de las reseñas, el esquema del JSON se declara EXPLÍCITAMENTE
 (apartado D: «esquemas definidos explícitamente, no inferidos»): Spark solo
@@ -94,6 +101,8 @@ def main():
         fecha = F.coalesce(F.try_to_timestamp(fecha_texto, F.lit("d MMM, yyyy")),
                            F.try_to_timestamp(fecha_texto, F.lit("MMM d, yyyy"))).cast("date")
         generos = F.transform(d["genres"], lambda g: g["description"])
+        # Cuántos géneros tiene el juego (0 si Steam no da ninguno).
+        num_generos = F.coalesce(F.size(generos), F.lit(0))
         juegos = crudo.select(
             F.col("app_id").cast("int").alias("app_id"),
             F.coalesce(F.col("respuesta.success"), F.lit(False)).alias("en_tienda"),
@@ -103,8 +112,8 @@ def main():
             # Precio de HOY en dólares (los gratuitos no traen precio): 0 si es gratis.
             F.when(d["is_free"], F.lit(0.0))
              .otherwise(d["price_overview"]["final"] / 100.0).alias("precio_usd"),
-            generos.alias("generos"),
-            generos[0].alias("genero_principal"),               # el primero que lista Steam
+            generos.alias("generos"),                           # lista completa (multi-etiqueta)
+            num_generos.alias("num_generos"),
             d["developers"].alias("desarrolladores"),
             d["publishers"].alias("editores"),
             fecha.alias("fecha_salida"),
@@ -121,13 +130,18 @@ def main():
             F.sum(F.col("nombre").isNull().cast("int")).alias("sin_nombre"),
             F.sum(F.col("fecha_salida").isNull().cast("int")).alias("sin_fecha"),
             F.sum(F.col("es_gratis").cast("int")).alias("gratis"),
+            F.avg("num_generos").alias("media_generos"),
         ).first()
         print("[CATALOGO] Juegos: {} | en la tienda: {} | sin nombre: {} | sin fecha: {} | gratis: {}"
               .format(r["juegos"], r["en_tienda"], r["sin_nombre"], r["sin_fecha"], r["gratis"]))
-        print("[CATALOGO] Generos principales mas frecuentes:")
-        for fila in (escrito.groupBy("genero_principal").count()
-                     .orderBy(F.desc("count")).limit(5).collect()):
-            print("        {:<25} {:>4}".format(str(fila["genero_principal"]), fila["count"]))
+        print("[CATALOGO] Columnas: {}".format(", ".join(escrito.columns)))
+        print("[CATALOGO] Generos por juego (media): {:.2f}".format(r["media_generos"]))
+        # Cada juego cuenta en TODOS sus géneros (explode = una fila por género).
+        print("[CATALOGO] Generos mas frecuentes (juegos que tienen cada genero):")
+        for fila in (escrito.select(F.explode("generos").alias("genero"))
+                     .groupBy("genero").count()
+                     .orderBy(F.desc("count"), "genero").limit(8).collect()):
+            print("        {:<25} {:>4}".format(fila["genero"], fila["count"]))
         print("[OK] Catalogo limpio en {}{}".format(ns, cfg_cat["salida"]))
         return 0
     finally:
