@@ -100,3 +100,20 @@ mapreduce:
   salida: /resultados/mapreduce/positivos_por_juego
   # Resultado del mismo calculo hecho con RDDs de Spark (para comparar)
   salida_rdd: /resultados/rdd/positivos_por_juego
+
+catalogo:
+  # Tabla auxiliar: catalogo de juegos de la API publica de la tienda de Steam
+  # (no necesita cuenta ni clave). La descarga src/ingesta/descargar_catalogo.py
+  url_api: https://store.steampowered.com/api/appdetails
+  # Idioma y pais fijos (ingles, EE. UU.) para que los datos no dependan de
+  # donde se ejecute el script. Los precios salen en dolares.
+  idioma: english
+  pais: us
+  # Segundos de pausa entre peticiones: Steam admite unas 200 cada 5 minutos
+  pausa_s: 1.5
+  # Reintentos si Steam responde "demasiadas peticiones" o falla la red
+  reintentos: 4
+  # Respuestas crudas, tal cual, una linea JSON por juego (zona raw)
+  raw: /raw/games/appdetails.jsonl
+  # Catalogo limpio en Parquet (zona curada; lo crea el mini-paso 3.8)
+  salida: /curada/games
