@@ -148,3 +148,9 @@ ml:
   # Resultados (zona resultados de HDFS)
   salida_informe: /resultados/ml/regresion_logistica.json
   salida_modelo: /resultados/ml/modelo_regresion_logistica
+
+exportar:
+  # Carpeta del repositorio (relativa a la raiz) donde se copian los resultados
+  # pequenos de HDFS (Q1-Q3, MapReduce, calidad, comparativa, ML) para que
+  # queden en GitHub. La crea src/analisis/exportar_resultados.py
+  carpeta_local: evidence/resultados

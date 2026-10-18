@@ -1,0 +1,163 @@
+PS C:\steam-bigdata> (Get-PSDrive C).Free / 1GB
+14,5570335388184
+PS C:\steam-bigdata> docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ml/modelo_recomendacion.py
+WARNING: Using incubator modules: jdk.incubator.vector
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+26/10/18 22:32:56 INFO SparkContext: Running Spark version 4.2.0
+26/10/18 22:32:56 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+26/10/18 22:32:56 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+26/10/18 22:32:56 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting Spark log level to "WARN".
+[ML] Catalogo: 315 juegos; generos en al menos el 10 % de ellos: Action (179), Indie (141), Adventure (131), Simulation (88), RPG (83), Strategy (76), Casual (34)
+[ML] Fraccion de resenas usada: 1 (semilla 42); 23 variables
+[ML] Idiomas con columna propia (el resto = otros): english, schinese, russian, brazilian, spanish, german, turkish, koreana, french, polish
+26/10/18 22:33:19 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+netlib-blas: JNI_OnLoad: dlopen(libblas.so.3) failed: libblas.so.3: cannot open shared object file: No such file or directory
+26/10/18 22:35:16 WARN TaskSetManager: Lost task 20.0 in stage 69.0 (TID 799) (spark-worker executor 0): java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:71)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:391)
+        at org.apache.spark.serializer.SerializerHelper$.$anonfun$serializeToChunkedBuffer$1(SerializerHelper.scala:40)
+        at org.apache.spark.serializer.SerializerHelper$.$anonfun$serializeToChunkedBuffer$1$adapted(SerializerHelper.scala:40)
+        at org.apache.spark.serializer.SerializerHelper$$$Lambda/0x00007eef147646f0.apply(Unknown Source)
+        at org.apache.spark.util.io.ChunkedByteBufferOutputStream.allocateNewChunkIfNeeded(ChunkedByteBufferOutputStream.scala:87)
+        at org.apache.spark.util.io.ChunkedByteBufferOutputStream.write(ChunkedByteBufferOutputStream.scala:75)
+        at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1899)
+        at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1808)
+        at java.base/java.io.ObjectOutputStream.<init>(ObjectOutputStream.java:256)
+        at org.apache.spark.serializer.JavaSerializationStream.<init>(JavaSerializer.scala:36)
+        at org.apache.spark.serializer.JavaSerializerInstance.serializeStream(JavaSerializer.scala:140)
+        at org.apache.spark.serializer.SerializerHelper$.serializeToChunkedBuffer(SerializerHelper.scala:41)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:942)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.runWith(Thread.java:1596)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+
+26/10/18 22:35:16 ERROR TaskSchedulerImpl: Lost executor 0 on spark-worker: Command exited with code 52
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_21!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_7!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_20!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_18!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_34!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_10!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_13!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_31!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_14!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_5!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_8!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_19!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_1!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_16!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_0!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_15!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_2!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_17!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_26!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_24!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_23!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_3!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_11!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_27!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_12!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_32!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_33!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_30!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_22!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_4!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_28!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_6!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_9!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_29!
+26/10/18 22:35:16 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_25!
+26/10/18 22:36:12 WARN TaskSetManager: Lost task 25.0 in stage 78.0 (TID 957) (spark-worker executor 1): java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:71)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:391)
+        at org.apache.spark.serializer.SerializerHelper$.$anonfun$serializeToChunkedBuffer$1(SerializerHelper.scala:40)
+        at org.apache.spark.serializer.SerializerHelper$.$anonfun$serializeToChunkedBuffer$1$adapted(SerializerHelper.scala:40)
+        at org.apache.spark.serializer.SerializerHelper$$$Lambda/0x00007a31a48ec800.apply(Unknown Source)
+        at org.apache.spark.util.io.ChunkedByteBufferOutputStream.allocateNewChunkIfNeeded(ChunkedByteBufferOutputStream.scala:87)
+        at org.apache.spark.util.io.ChunkedByteBufferOutputStream.write(ChunkedByteBufferOutputStream.scala:75)
+        at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.drain(ObjectOutputStream.java:1899)
+        at java.base/java.io.ObjectOutputStream$BlockDataOutputStream.setBlockDataMode(ObjectOutputStream.java:1808)
+        at java.base/java.io.ObjectOutputStream.<init>(ObjectOutputStream.java:256)
+        at org.apache.spark.serializer.JavaSerializationStream.<init>(JavaSerializer.scala:36)
+        at org.apache.spark.serializer.JavaSerializerInstance.serializeStream(JavaSerializer.scala:140)
+        at org.apache.spark.serializer.SerializerHelper$.serializeToChunkedBuffer(SerializerHelper.scala:41)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:942)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.runWith(Thread.java:1596)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+
+26/10/18 22:36:12 ERROR TaskSchedulerImpl: Lost executor 1 on spark-worker: Command exited with code 52
+26/10/18 22:36:12 WARN TaskSetManager: Lost task 30.0 in stage 78.0 (TID 962) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 22:36:12 WARN TaskSetManager: Lost task 29.0 in stage 78.0 (TID 961) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 22:36:12 WARN TaskSetManager: Lost task 28.0 in stage 78.0 (TID 960) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_1!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_16!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_21!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_0!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_7!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_15!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_2!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_17!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_26!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_20!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_18!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_24!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_23!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_34!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_10!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_3!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_11!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_27!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_12!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_32!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_13!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_33!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_30!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_22!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_28!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_4!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_6!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_9!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_29!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_31!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_14!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_5!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_25!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_8!
+26/10/18 22:36:12 WARN BlockManagerMasterEndpoint: No more replicas available for rdd_72_19!
+[ML] Entrenado en 232.1 s (20 iteraciones)
+[ML] Filas: entrenamiento 17289887, prueba 4322550
+[ML] AUC ROC (prueba): 0.7461   (0,5 = azar; 1 = perfecto)
+[ML] AUC PR  (prueba): 0.9472
+[ML] Acierto con umbral 0,5: 87.42 %  frente a decir siempre si: 87.43 %
+[ML] Resenas de prueba que el modelo predice como NO: 24290
+[ML] Coeficientes (positivo = mas probable que recomiende), de mayor a menor peso:
+        log_longitud_texto                 -0.5014
+        genero_indie                       +0.4819
+        idioma_schinese                    -0.3916
+        genero_adventure                   -0.2522
+        genero_action                      -0.2415
+        acceso_anticipado                  -0.1585
+        genero_casual                      +0.1388
+        idioma_brazilian                   +0.1340
+        idioma_koreana                     -0.1008
+        idioma_spanish                     +0.0905
+        genero_rpg                         +0.0877
+        idioma_polish                      +0.0853
+        log_horas_al_resenar               +0.0603
+        genero_simulation                  -0.0572
+        genero_strategy                    +0.0319
+        compra_steam                       +0.0262
+        idioma_french                      +0.0257
+        idioma_turkish                     +0.0166
+        recibido_gratis                    +0.0146
+        sin_horas                          -0.0096
+        idioma_russian                     +0.0048
+        idioma_german                      +0.0017
+        idioma_english                     -0.0004
+        (intercepto)                       +3.5410
+[ML] Tiempos: {'preparar_s': 19.1, 'entrenar_s': 232.1, 'evaluar_s': 54.1, 'total_s': 305.3}
+[OK] Informe en /resultados/ml/regresion_logistica.json y modelo en /resultados/ml/modelo_regresion_logistica

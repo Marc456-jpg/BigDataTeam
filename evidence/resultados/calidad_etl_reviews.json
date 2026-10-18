@@ -1,0 +1,51 @@
+{
+  "entrada": "/raw/steam_reviews.csv",
+  "salida": "/curada/reviews",
+  "calidad": {
+    "filas_leidas": 21747371,
+    "filas_corruptas": 7,
+    "filas_sin_columna_clave": 0,
+    "filas_fecha_fuera_de_rango": 0,
+    "filas_validas": 21747364,
+    "aviso_review_nula": 33742,
+    "aviso_playtime_at_review_nulo": 25682,
+    "aviso_playtime_negativo": 0,
+    "aviso_weighted_vote_score_fuera_0_1": 0,
+    "aviso_votes_funny_desbordado": 543,
+    "aviso_votes_helpful_desbordado": 2,
+    "fecha_min": "2010-11-19 20:17:16",
+    "fecha_max": "2021-01-23 18:24:47",
+    "review_id_duplicadas": 134927,
+    "filas_finales": 21612437
+  },
+  "particion": {
+    "particiones_anio": 12,
+    "particiones_anio_mes": 123,
+    "mb_por_anio": {
+      "year=2010": 0.4,
+      "year=2011": 5.3,
+      "year=2012": 8.6,
+      "year=2013": 40.8,
+      "year=2014": 153.2,
+      "year=2015": 232.3,
+      "year=2016": 429.7,
+      "year=2017": 632.5,
+      "year=2018": 732.3,
+      "year=2019": 706.1,
+      "year=2020": 1131.7,
+      "year=2021": 80.5
+    },
+    "mb_mediana_anio": 192.8,
+    "mb_mediana_anio_mes": 24.8,
+    "mb_min_anio_mes": 0.1,
+    "mb_max_anio_mes": 126.1,
+    "umbral_mb": 128,
+    "criterio_config": "auto",
+    "particion_elegida": "year"
+  },
+  "tamano_salida_mb": 4276.3,
+  "minutos": {
+    "pasada_1": 10.2,
+    "pasada_2": 22.7
+  }
+}

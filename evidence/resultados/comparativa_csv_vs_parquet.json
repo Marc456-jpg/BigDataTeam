@@ -1,0 +1,31 @@
+{
+  "tamano_mb": {
+    "csv": 7793.2,
+    "csv_con_replicas": 15586.4,
+    "parquet": 4276.3,
+    "parquet_con_replicas": 8552.6,
+    "parquet_entre_csv": 0.549
+  },
+  "consulta": "groupBy(recommended).count()",
+  "segundos": {
+    "csv": 43.5,
+    "parquet": 1.9,
+    "parquet_solo_2020": 0.6
+  },
+  "veces_mas_rapido_parquet": 22.4,
+  "resultado": {
+    "csv": {
+      "True": 19022610,
+      "False": 2724761
+    },
+    "parquet": {
+      "True": 18891963,
+      "False": 2720474
+    },
+    "parquet_solo_2020": {
+      "True": 7142090,
+      "False": 676071
+    }
+  },
+  "nota": "El CSV incluye las filas corruptas y las duplicadas que el ETL quito; por eso sus cuentas son algo mayores que las del Parquet."
+}
