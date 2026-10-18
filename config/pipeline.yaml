@@ -39,3 +39,51 @@ hdfs:
   raw: /raw
   curada: /curada
   resultados: /resultados
+
+spark:
+  # Direccion del master de Spark (contenedor spark-master, puerto 7077)
+  master: spark://spark-master:7077
+  # Memoria del driver (el programa que se ejecuta en el contenedor jupyter)
+  # y de cada executor (en spark-worker). Caben en los topes del compose.
+  memoria_driver: 1g
+  memoria_executor: 1g
+  # Zona horaria de las fechas: UTC (decision del 16 oct), para que el
+  # ano y el mes de cada resena no dependan del PC donde se ejecute
+  zona_horaria: UTC
+  # Copias de cada bloque que escriba Spark en HDFS (solo hay 2 DataNodes)
+  replicacion_hdfs: 2
+  # Numero de particiones de los "shuffles" (agrupaciones). Con 4 nucleos,
+  # 32 es suficiente; el valor por defecto (200) crearia tareas diminutas.
+  particiones_shuffle: 32
+
+etl:
+  # CSV original en la zona raw (lo subio el mini-paso 2.2)
+  csv_raw: /raw/steam_reviews.csv
+  # Zona de paso: primera escritura en Parquet, particionada por ano y mes,
+  # que sirve para MEDIR el tamano de cada particion. Se borra al terminar.
+  staging: /curada/staging_reviews
+  # Resultado final: datos limpios en Parquet (zona curada)
+  salida: /curada/reviews
+  # Columna(s) de particion de la salida:
+  #   auto       -> se decide midiendo (ver umbral)
+  #   year       -> una carpeta por ano
+  #   year_month -> una carpeta por ano y mes (lo que decia la inscripcion)
+  particion: auto
+  # Criterio de "auto": si la particion ano+mes tipica (mediana) pesa al
+  # menos esto, se usa year_month; si no, year. 128 MB = 1 bloque de HDFS
+  # (el enunciado pide particiones de "cientos de MB, no de KB").
+  umbral_mb_particion: 128
+  # Numero de tareas al escribir la zona de paso (4 nucleos x 4)
+  particiones_staging: 16
+  # Tamano (MB) de cada "grupo de filas" (row group) de los archivos Parquet.
+  # Quien lee Parquet carga un grupo entero en memoria. Con el valor por
+  # defecto (128 MB) y 4 tareas a la vez, el executor de 1 GB se quedaba sin
+  # memoria (OutOfMemoryError del 18 oct). Con 16 MB, cada tarea carga 8 veces
+  # menos.
+  parquet_grupo_filas_mb: 16
+  # Rango valido de fechas de creacion de las resenas (UTC). Steam nacio
+  # en 2003 y el dataset se descargo a principios de 2021.
+  fecha_minima: "2003-09-12"
+  fecha_maxima: "2021-12-31"
+  # Informe de calidad de datos (en HDFS, zona resultados)
+  informe_calidad: /resultados/calidad/etl_reviews.json

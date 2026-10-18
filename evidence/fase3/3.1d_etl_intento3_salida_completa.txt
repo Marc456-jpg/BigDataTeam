@@ -1,0 +1,458 @@
+PS C:\steam-bigdata> docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/etl_reviews.py
+WARNING: Using incubator modules: jdk.incubator.vector
+Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+26/10/18 18:09:10 INFO SparkContext: Running Spark version 4.2.0
+26/10/18 18:09:10 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+26/10/18 18:09:10 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+26/10/18 18:09:11 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting Spark log level to "WARN".
+[ETL] Spark 4.2.0 | entrada hdfs://namenode:9000/raw/steam_reviews.csv
+[ETL] Web de esta aplicacion: http://localhost:4040
+[1/4] Pasada 1: CSV -> Parquet de paso (la parte lenta) ...
+26/10/18 18:09:24 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+      hecho en 10.2 min
+Setting Spark log level to "WARN".
+      zona de paso reducida a 1 copia (124 archivos)
+[2/4] Midiendo el tamano de las particiones ...
+      particiones ano: 12 | ano+mes: 123
+      mediana ano: 192.8 MB | mediana ano+mes: 24.8 MB (umbral 128 MB)
+        year=2010           0.4 MB
+        year=2011           5.3 MB
+        year=2012           8.6 MB
+        year=2013          40.8 MB
+        year=2014         153.2 MB
+        year=2015         232.3 MB
+        year=2016         429.7 MB
+        year=2017         632.5 MB
+        year=2018         732.3 MB
+        year=2019         706.1 MB
+        year=2020        1131.7 MB
+        year=2021          80.5 MB
+      -> particion elegida: year
+[3/4] Pasada 2: calidad + limpieza -> /curada/reviews ...
+26/10/18 18:21:45 WARN TaskSetManager: Lost task 20.0 in stage 10.0 (TID 120) (spark-worker executor 0): org.apache.spark.SparkException: [FAILED_READ_FILE.NO_HINT] Encountered error while reading file hdfs://namenode:9000/curada/staging_reviews/year=2018/month=2/part-00012-2dd050af-d918-4af3-a59e-ae7da6d18564.c000.snappy.parquet.  SQLSTATE: KD001
+        at org.apache.spark.sql.errors.QueryExecutionErrors$.cannotReadFilesError(QueryExecutionErrors.scala:940)
+        at org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2$.attachFilePath(FileDataSourceV2.scala:142)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:149)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.columnartorow_nextBatch_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.sort_addToSorter_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.processNext(Unknown Source)
+        at org.apache.spark.sql.execution.BufferedRowIterator.hasNext(BufferedRowIterator.java:44)
+        at org.apache.spark.sql.execution.WholeStageCodegenEvaluatorFactory$WholeStageCodegenPartitionEvaluator$$anon$1.hasNext(WholeStageCodegenEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.fetchNextRow(WindowGroupLimitExec.scala:213)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.<init>(WindowGroupLimitExec.scala:219)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory.$anonfun$createEvaluator$4(WindowGroupLimitEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$WindowGroupLimitPartitionEvaluator.eval(WindowGroupLimitEvaluatorFactory.scala:60)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1(WindowGroupLimitExec.scala:89)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1$adapted(WindowGroupLimitExec.scala:87)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2(RDD.scala:896)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2$adapted(RDD.scala:896)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:107)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:54)
+        at org.apache.spark.TaskContext.runTaskWithListeners(TaskContext.scala:206)
+        at org.apache.spark.scheduler.Task.run(Task.scala:147)
+        at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$4(Executor.scala:894)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally(SparkErrorUtils.scala:86)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally$(SparkErrorUtils.scala:83)
+        at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:97)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:897)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: java.lang.OutOfMemoryError: Java heap space
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:67)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        ... 32 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:71)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:391)
+        at org.apache.parquet.bytes.HeapByteBufferAllocator.allocate(HeapByteBufferAllocator.java:34)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge$$Lambda/0x000076303c92cb80.apply(Unknown Source)
+        at org.apache.hadoop.fs.VectoredReadUtils.readRangeFrom(VectoredReadUtils.java:173)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:131)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:112)
+        at org.apache.hadoop.fs.PositionedReadable.readVectored(PositionedReadable.java:139)
+        at org.apache.hadoop.fs.FSDataInputStream.readVectored(FSDataInputStream.java:308)
+        at java.base/java.lang.invoke.LambdaForm$DMH/0x000076303c933400.invokeInterface(LambdaForm$DMH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x000076303c908000.invoke(LambdaForm$MH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x000076303c204c00.invokeExact_MT(LambdaForm$MH)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:155)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:62)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+
+26/10/18 18:21:50 ERROR TaskSchedulerImpl: Lost executor 0 on spark-worker: Command exited with code 52
+26/10/18 18:21:50 WARN TaskSetManager: Lost task 19.0 in stage 10.0 (TID 119) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:21:50 WARN TaskSetManager: Lost task 21.0 in stage 10.0 (TID 121) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:21:50 WARN TaskSetManager: Lost task 17.0 in stage 10.0 (TID 117) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:21:50 WARN TaskSetManager: Lost task 18.0 in stage 10.0 (TID 118) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:24:41 WARN TaskSetManager: Lost task 27.0 in stage 10.0 (TID 149) (spark-worker executor 1): org.apache.spark.SparkException: [FAILED_READ_FILE.NO_HINT] Encountered error while reading file hdfs://namenode:9000/curada/staging_reviews/year=2018/month=5/part-00007-2dd050af-d918-4af3-a59e-ae7da6d18564.c000.snappy.parquet.  SQLSTATE: KD001
+        at org.apache.spark.sql.errors.QueryExecutionErrors$.cannotReadFilesError(QueryExecutionErrors.scala:940)
+        at org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2$.attachFilePath(FileDataSourceV2.scala:142)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:149)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.columnartorow_nextBatch_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.sort_addToSorter_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.processNext(Unknown Source)
+        at org.apache.spark.sql.execution.BufferedRowIterator.hasNext(BufferedRowIterator.java:44)
+        at org.apache.spark.sql.execution.WholeStageCodegenEvaluatorFactory$WholeStageCodegenPartitionEvaluator$$anon$1.hasNext(WholeStageCodegenEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.fetchNextRow(WindowGroupLimitExec.scala:213)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.<init>(WindowGroupLimitExec.scala:219)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory.$anonfun$createEvaluator$4(WindowGroupLimitEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$WindowGroupLimitPartitionEvaluator.eval(WindowGroupLimitEvaluatorFactory.scala:60)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1(WindowGroupLimitExec.scala:89)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1$adapted(WindowGroupLimitExec.scala:87)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2(RDD.scala:896)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2$adapted(RDD.scala:896)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:107)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:54)
+        at org.apache.spark.TaskContext.runTaskWithListeners(TaskContext.scala:206)
+        at org.apache.spark.scheduler.Task.run(Task.scala:147)
+        at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$4(Executor.scala:894)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally(SparkErrorUtils.scala:86)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally$(SparkErrorUtils.scala:83)
+        at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:97)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:897)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: java.lang.OutOfMemoryError: Java heap space
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:67)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.nextIterator(FileScanRDD.scala:301)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        ... 32 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:71)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:391)
+        at org.apache.parquet.bytes.HeapByteBufferAllocator.allocate(HeapByteBufferAllocator.java:34)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge$$Lambda/0x00007ca5bca3f320.apply(Unknown Source)
+        at org.apache.hadoop.fs.VectoredReadUtils.readRangeFrom(VectoredReadUtils.java:173)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:131)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:112)
+        at org.apache.hadoop.fs.PositionedReadable.readVectored(PositionedReadable.java:139)
+        at org.apache.hadoop.fs.FSDataInputStream.readVectored(FSDataInputStream.java:308)
+        at java.base/java.lang.invoke.LambdaForm$DMH/0x00007ca5bca44800.invokeInterface(LambdaForm$DMH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x00007ca5bc75e000.invoke(LambdaForm$MH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x00007ca5bc204c00.invokeExact_MT(LambdaForm$MH)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:155)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:62)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.nextIterator(FileScanRDD.scala:301)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+
+26/10/18 18:24:42 ERROR TaskSchedulerImpl: Lost executor 1 on spark-worker: Command exited with code 52
+26/10/18 18:24:42 WARN TaskSetManager: Lost task 29.0 in stage 10.0 (TID 151) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:24:42 WARN TaskSetManager: Lost task 26.0 in stage 10.0 (TID 148) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:24:42 WARN TaskSetManager: Lost task 28.0 in stage 10.0 (TID 150) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:24:42 WARN TaskSetManager: Lost task 30.0 in stage 10.0 (TID 152) (spark-worker executor 1): ExecutorLostFailure (executor 1 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:00 WARN TaskSetManager: Lost task 29.1 in stage 10.0 (TID 156) (spark-worker executor 2): org.apache.spark.SparkException: [FAILED_READ_FILE.NO_HINT] Encountered error while reading file hdfs://namenode:9000/curada/staging_reviews/year=2018/month=4/part-00003-2dd050af-d918-4af3-a59e-ae7da6d18564.c000.snappy.parquet.  SQLSTATE: KD001
+        at org.apache.spark.sql.errors.QueryExecutionErrors$.cannotReadFilesError(QueryExecutionErrors.scala:940)
+        at org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2$.attachFilePath(FileDataSourceV2.scala:142)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:149)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.columnartorow_nextBatch_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.sort_addToSorter_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.processNext(Unknown Source)
+        at org.apache.spark.sql.execution.BufferedRowIterator.hasNext(BufferedRowIterator.java:44)
+        at org.apache.spark.sql.execution.WholeStageCodegenEvaluatorFactory$WholeStageCodegenPartitionEvaluator$$anon$1.hasNext(WholeStageCodegenEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.fetchNextRow(WindowGroupLimitExec.scala:213)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.<init>(WindowGroupLimitExec.scala:219)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory.$anonfun$createEvaluator$4(WindowGroupLimitEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$WindowGroupLimitPartitionEvaluator.eval(WindowGroupLimitEvaluatorFactory.scala:60)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1(WindowGroupLimitExec.scala:89)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1$adapted(WindowGroupLimitExec.scala:87)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2(RDD.scala:896)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2$adapted(RDD.scala:896)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:107)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:54)
+        at org.apache.spark.TaskContext.runTaskWithListeners(TaskContext.scala:206)
+        at org.apache.spark.scheduler.Task.run(Task.scala:147)
+        at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$4(Executor.scala:894)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally(SparkErrorUtils.scala:86)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally$(SparkErrorUtils.scala:83)
+        at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:97)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:897)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: Cannot reserve additional contiguous bytes in the vectorized reader (requested 7979513 bytes). As a workaround, you can reduce the vectorized reader batch size, or disable the vectorized reader, or disable spark.sql.sources.bucketing.enabled if you read from bucket table. For Parquet file format, refer to spark.sql.parquet.columnarReaderBatchSize (default 4096) and spark.sql.parquet.enableVectorizedReader; for ORC file format, refer to spark.sql.orc.columnarReaderBatchSize (default 4096) and spark.sql.orc.enableVectorizedReader.
+        at org.apache.spark.sql.execution.vectorized.WritableColumnVector.throwUnsupportedException(WritableColumnVector.java:158)
+        at org.apache.spark.sql.execution.vectorized.WritableColumnVector.reserve(WritableColumnVector.java:138)
+        at org.apache.spark.sql.execution.vectorized.WritableColumnVector.appendBytes(WritableColumnVector.java:627)
+        at org.apache.spark.sql.execution.vectorized.OnHeapColumnVector.putByteArray(OnHeapColumnVector.java:602)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedPlainValuesReader.readBinary(VectorizedPlainValuesReader.java:476)
+        at org.apache.spark.sql.execution.datasources.parquet.ParquetVectorUpdaterFactory$BinaryUpdater.readValues(ParquetVectorUpdaterFactory.java:1026)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedRleValuesReader.readBatchInternal(VectorizedRleValuesReader.java:242)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedRleValuesReader.readBatch(VectorizedRleValuesReader.java:174)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedColumnReader.readBatch(VectorizedColumnReader.java:293)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:406)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        ... 32 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+        at org.apache.spark.sql.execution.vectorized.OnHeapColumnVector.reserveInternal(OnHeapColumnVector.java:630)
+        at org.apache.spark.sql.execution.vectorized.WritableColumnVector.reserve(WritableColumnVector.java:136)
+        at org.apache.spark.sql.execution.vectorized.WritableColumnVector.appendBytes(WritableColumnVector.java:627)
+        at org.apache.spark.sql.execution.vectorized.OnHeapColumnVector.putByteArray(OnHeapColumnVector.java:602)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedPlainValuesReader.readBinary(VectorizedPlainValuesReader.java:476)
+        at org.apache.spark.sql.execution.datasources.parquet.ParquetVectorUpdaterFactory$BinaryUpdater.readValues(ParquetVectorUpdaterFactory.java:1026)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedRleValuesReader.readBatchInternal(VectorizedRleValuesReader.java:242)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedRleValuesReader.readBatch(VectorizedRleValuesReader.java:174)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedColumnReader.readBatch(VectorizedColumnReader.java:293)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:406)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.columnartorow_nextBatch_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.sort_addToSorter_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.processNext(Unknown Source)
+        at org.apache.spark.sql.execution.BufferedRowIterator.hasNext(BufferedRowIterator.java:44)
+        at org.apache.spark.sql.execution.WholeStageCodegenEvaluatorFactory$WholeStageCodegenPartitionEvaluator$$anon$1.hasNext(WholeStageCodegenEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.fetchNextRow(WindowGroupLimitExec.scala:213)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.<init>(WindowGroupLimitExec.scala:219)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory.$anonfun$createEvaluator$4(WindowGroupLimitEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$$Lambda/0x000074d3a87b6490.apply(Unknown Source)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$WindowGroupLimitPartitionEvaluator.eval(WindowGroupLimitEvaluatorFactory.scala:60)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1(WindowGroupLimitExec.scala:89)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1$adapted(WindowGroupLimitExec.scala:87)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec$$Lambda/0x000074d3a867cf60.apply(Unknown Source)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2(RDD.scala:896)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2$adapted(RDD.scala:896)
+        at org.apache.spark.rdd.RDD$$Lambda/0x000074d3a867d510.apply(Unknown Source)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+
+26/10/18 18:25:04 ERROR TaskSchedulerImpl: Lost executor 2 on spark-worker: Command exited with code 52
+26/10/18 18:25:04 WARN TaskSetManager: Lost task 30.1 in stage 10.0 (TID 153) (spark-worker executor 2): ExecutorLostFailure (executor 2 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:04 WARN TaskSetManager: Lost task 23.1 in stage 10.0 (TID 157) (spark-worker executor 2): ExecutorLostFailure (executor 2 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:04 WARN TaskSetManager: Lost task 28.1 in stage 10.0 (TID 154) (spark-worker executor 2): ExecutorLostFailure (executor 2 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:04 WARN TaskSetManager: Lost task 26.1 in stage 10.0 (TID 155) (spark-worker executor 2): ExecutorLostFailure (executor 2 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:42 WARN TaskSetManager: Lost task 7.2 in stage 10.0 (TID 165) (spark-worker executor 3): org.apache.spark.SparkException: [FAILED_READ_FILE.NO_HINT] Encountered error while reading file hdfs://namenode:9000/curada/staging_reviews/year=2020/month=7/part-00010-2dd050af-d918-4af3-a59e-ae7da6d18564.c000.snappy.parquet.  SQLSTATE: KD001
+        at org.apache.spark.sql.errors.QueryExecutionErrors$.cannotReadFilesError(QueryExecutionErrors.scala:940)
+        at org.apache.spark.sql.execution.datasources.v2.FileDataSourceV2$.attachFilePath(FileDataSourceV2.scala:142)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:149)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.columnartorow_nextBatch_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.sort_addToSorter_0$(Unknown Source)
+        at org.apache.spark.sql.catalyst.expressions.GeneratedClass$GeneratedIteratorForCodegenStage1.processNext(Unknown Source)
+        at org.apache.spark.sql.execution.BufferedRowIterator.hasNext(BufferedRowIterator.java:44)
+        at org.apache.spark.sql.execution.WholeStageCodegenEvaluatorFactory$WholeStageCodegenPartitionEvaluator$$anon$1.hasNext(WholeStageCodegenEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.fetchNextRow(WindowGroupLimitExec.scala:213)
+        at org.apache.spark.sql.execution.window.GroupedLimitIterator.<init>(WindowGroupLimitExec.scala:219)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory.$anonfun$createEvaluator$4(WindowGroupLimitEvaluatorFactory.scala:50)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitEvaluatorFactory$WindowGroupLimitPartitionEvaluator.eval(WindowGroupLimitEvaluatorFactory.scala:60)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1(WindowGroupLimitExec.scala:89)
+        at org.apache.spark.sql.execution.window.WindowGroupLimitExec.$anonfun$doExecute$1$adapted(WindowGroupLimitExec.scala:87)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2(RDD.scala:896)
+        at org.apache.spark.rdd.RDD.$anonfun$mapPartitionsWithIndexInternal$2$adapted(RDD.scala:896)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.rdd.MapPartitionsRDD.compute(MapPartitionsRDD.scala:57)
+        at org.apache.spark.rdd.RDD.computeOrReadCheckpoint(RDD.scala:374)
+        at org.apache.spark.rdd.RDD.iterator(RDD.scala:338)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:107)
+        at org.apache.spark.scheduler.ShuffleMapTask.runTask(ShuffleMapTask.scala:54)
+        at org.apache.spark.TaskContext.runTaskWithListeners(TaskContext.scala:206)
+        at org.apache.spark.scheduler.Task.run(Task.scala:147)
+        at org.apache.spark.executor.Executor$TaskRunner.$anonfun$run$4(Executor.scala:894)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally(SparkErrorUtils.scala:86)
+        at org.apache.spark.util.SparkErrorUtils.tryWithSafeFinally$(SparkErrorUtils.scala:83)
+        at org.apache.spark.util.Utils$.tryWithSafeFinally(Utils.scala:97)
+        at org.apache.spark.executor.Executor$TaskRunner.run(Executor.scala:897)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+        at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.RuntimeException: java.lang.OutOfMemoryError: Java heap space
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:67)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        ... 32 more
+Caused by: java.lang.OutOfMemoryError: Java heap space
+        at java.base/java.nio.HeapByteBuffer.<init>(HeapByteBuffer.java:71)
+        at java.base/java.nio.ByteBuffer.allocate(ByteBuffer.java:391)
+        at org.apache.parquet.bytes.HeapByteBufferAllocator.allocate(HeapByteBufferAllocator.java:34)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge$$Lambda/0x00007cef889ffb10.apply(Unknown Source)
+        at org.apache.hadoop.fs.VectoredReadUtils.readRangeFrom(VectoredReadUtils.java:173)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:131)
+        at org.apache.hadoop.fs.VectoredReadUtils.readVectored(VectoredReadUtils.java:112)
+        at org.apache.hadoop.fs.PositionedReadable.readVectored(PositionedReadable.java:139)
+        at org.apache.hadoop.fs.FSDataInputStream.readVectored(FSDataInputStream.java:308)
+        at java.base/java.lang.invoke.LambdaForm$DMH/0x00007cef88a04c00.invokeInterface(LambdaForm$DMH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x00007cef88a09c00.invoke(LambdaForm$MH)
+        at java.base/java.lang.invoke.LambdaForm$MH/0x00007cef88204c00.invokeExact_MT(LambdaForm$MH)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invokeImpl(DirectMethodHandleAccessor.java:155)
+        at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+        at org.apache.parquet.util.DynMethods$UnboundMethod.invokeChecked(DynMethods.java:62)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readWrappedRanges(VectorIoBridge.java:244)
+        at org.apache.parquet.hadoop.util.wrapped.io.VectorIoBridge.readVectoredRanges(VectorIoBridge.java:201)
+        at org.apache.parquet.hadoop.util.H2SeekableInputStream.readVectored(H2SeekableInputStream.java:100)
+        at org.apache.parquet.hadoop.ParquetFileReader.readVectored(ParquetFileReader.java:1357)
+        at org.apache.parquet.hadoop.ParquetFileReader.readAllPartsVectoredOrNormal(ParquetFileReader.java:1274)
+        at org.apache.parquet.hadoop.ParquetFileReader.internalReadRowGroup(ParquetFileReader.java:1185)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextRowGroup(ParquetFileReader.java:1135)
+        at org.apache.parquet.hadoop.ParquetFileReader.readNextFilteredRowGroup(ParquetFileReader.java:1398)
+        at org.apache.spark.sql.execution.datasources.parquet.SpecificParquetRecordReaderBase$ParquetRowGroupReaderImpl.readNextRowGroup(SpecificParquetRecordReaderBase.java:292)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.checkEndOfRowGroup(VectorizedParquetRecordReader.java:481)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextBatch(VectorizedParquetRecordReader.java:399)
+        at org.apache.spark.sql.execution.datasources.parquet.VectorizedParquetRecordReader.nextKeyValue(VectorizedParquetRecordReader.java:238)
+        at org.apache.spark.sql.execution.datasources.RecordReaderIterator.hasNext(RecordReaderIterator.scala:39)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext0(FileScanRDD.scala:138)
+        at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.hasNext(FileScanRDD.scala:147)
+        at org.apache.spark.sql.execution.FileSourceScanExec$$anon$1.hasNext(DataSourceScanExec.scala:777)
+
+26/10/18 18:25:43 ERROR TaskSchedulerImpl: Lost executor 3 on spark-worker: Command exited with code 52
+26/10/18 18:25:43 WARN TaskSetManager: Lost task 20.2 in stage 10.0 (TID 168) (spark-worker executor 3): ExecutorLostFailure (executor 3 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:43 WARN TaskSetManager: Lost task 17.2 in stage 10.0 (TID 166) (spark-worker executor 3): ExecutorLostFailure (executor 3 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:43 WARN TaskSetManager: Lost task 14.2 in stage 10.0 (TID 163) (spark-worker executor 3): ExecutorLostFailure (executor 3 exited caused by one of the running tasks) Reason: Command exited with code 52
+26/10/18 18:25:43 WARN TaskSetManager: Lost task 4.2 in stage 10.0 (TID 167) (spark-worker executor 3): ExecutorLostFailure (executor 3 exited caused by one of the running tasks) Reason: Command exited with code 52
+      hecho en 22.7 min
+[4/4] Informe de calidad y borrado de la zona de paso ...
+{
+  "entrada": "/raw/steam_reviews.csv",
+  "salida": "/curada/reviews",
+  "calidad": {
+    "filas_leidas": 21747371,
+    "filas_corruptas": 7,
+    "filas_sin_columna_clave": 0,
+    "filas_fecha_fuera_de_rango": 0,
+    "filas_validas": 21747364,
+    "aviso_review_nula": 33742,
+    "aviso_playtime_at_review_nulo": 25682,
+    "aviso_playtime_negativo": 0,
+    "aviso_weighted_vote_score_fuera_0_1": 0,
+    "aviso_votes_funny_desbordado": 543,
+    "aviso_votes_helpful_desbordado": 2,
+    "fecha_min": "2010-11-19 20:17:16",
+    "fecha_max": "2021-01-23 18:24:47",
+    "review_id_duplicadas": 134927,
+    "filas_finales": 21612437
+  },
+  "particion": {
+    "particiones_anio": 12,
+    "particiones_anio_mes": 123,
+    "mb_por_anio": {
+      "year=2010": 0.4,
+      "year=2011": 5.3,
+      "year=2012": 8.6,
+      "year=2013": 40.8,
+      "year=2014": 153.2,
+      "year=2015": 232.3,
+      "year=2016": 429.7,
+      "year=2017": 632.5,
+      "year=2018": 732.3,
+      "year=2019": 706.1,
+      "year=2020": 1131.7,
+      "year=2021": 80.5
+    },
+    "mb_mediana_anio": 192.8,
+    "mb_mediana_anio_mes": 24.8,
+    "mb_min_anio_mes": 0.1,
+    "mb_max_anio_mes": 126.1,
+    "umbral_mb": 128,
+    "criterio_config": "auto",
+    "particion_elegida": "year"
+  },
+  "tamano_salida_mb": 4276.3,
+  "minutos": {
+    "pasada_1": 10.2,
+    "pasada_2": 22.7
+  }
+}
+[OK] ETL terminado en 33.1 min. Informe en hdfs://namenode:9000/resultados/calidad/etl_reviews.json
