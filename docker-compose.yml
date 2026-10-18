@@ -2,8 +2,8 @@
 #  docker-compose.yml del proyecto Steam Reviews (Entrega 1)
 #  Equipo: Manu, Marc y Nora
 #
-#  VERSION ACTUAL (mini-paso 1.4e): HDFS + Spark + YARN (este ultimo en el perfil "yarn")
-#  Arranque normal (HDFS + Spark):      docker compose up -d
+#  VERSION ACTUAL (mini-paso 1.5): HDFS + Spark + Jupyter + YARN (este ultimo en el perfil "yarn")
+#  Arranque normal (HDFS + Spark + Jupyter): docker compose up -d
 #  Con YARN (solo para MapReduce):      docker compose --profile yarn up -d
 #  Parar YARN:                          docker compose --profile yarn stop resourcemanager nodemanager
 #    - namenode     : el indice de HDFS (web en http://localhost:9870)
@@ -13,7 +13,8 @@
 #    - spark-worker : ejecuta las tasks de Spark (web en http://localhost:8081)
 #    - resourcemanager (perfil yarn): reparte memoria y CPU a MapReduce (web en http://localhost:8088)
 #    - nodemanager     (perfil yarn): ejecuta las tareas de MapReduce (con Python 3 para Hadoop Streaming)
-#  En el siguiente mini-paso se anadira Jupyter.
+#    - jupyter      : nuestro entorno de desarrollo con PySpark (http://localhost:8888/lab?token=steam)
+#                     y la web de Spark de cada programa (http://localhost:4040)
 #
 #  Basado en el docker-compose.yml del profesor (docker/docker-compose.yml)
 # =====================================================================
@@ -151,6 +152,36 @@ services:
       retries: 3
       start_period: 30s
     mem_limit: 2816m                 # 2 GB executors + 512 MB worker + margen
+
+  # ------------------------------------------------------------------
+  # Jupyter: nuestro entorno de desarrollo (el enunciado pide "un entorno
+  # de desarrollo con PySpark instalado ... que pueda conectarse al cluster").
+  # Desde sus notebooks, Spark actua como "driver" (el cerebro que planifica)
+  # y manda el trabajo al master, que lo reparte al worker.
+  # Usa EXACTAMENTE la misma imagen que master y worker (mismo digest), para
+  # que Python y Spark coincidan (si no, Spark da PYTHON_VERSION_MISMATCH).
+  # La forma de lanzarlo sigue la clase del profesor (Topic 4, "Setup: Spark
+  # in Docker"): puertos 8888 y 4040, carpeta montada en /home/jovyan/work,
+  # usuario root solo para arreglar permisos al arrancar (CHOWN_EXTRA).
+  # ------------------------------------------------------------------
+  jupyter:
+    image: quay.io/jupyter/pyspark-notebook@sha256:7cad53570e4d168b17a453d190601c677a08836992f8b04888a627a5532e3614
+    container_name: jupyter
+    hostname: jupyter                # los executors usan este nombre para devolver resultados al driver
+    restart: unless-stopped
+    depends_on:
+      - spark-master
+    user: root                       # solo para el arreglo de permisos; Jupyter se ejecuta luego como usuario normal (jovyan)
+    ports:
+      - "127.0.0.1:8888:8888"        # Jupyter Lab. "127.0.0.1" = solo accesible desde este PC (Jupyter ejecuta codigo)
+      - "127.0.0.1:4040:4040"        # web de Spark del programa que este corriendo (Jobs, Stages, SQL...)
+    volumes:
+      - .:/home/jovyan/work          # TODA la carpeta del proyecto: notebooks/, src/, config/... se ven y se guardan en el PC
+    environment:
+      - JUPYTER_TOKEN=steam          # "contrasena" fija de Jupyter (en vez de copiarla del log cada vez)
+      - CHOWN_EXTRA=/home/jovyan/work   # al arrancar, da permisos sobre la carpeta montada al usuario de Jupyter
+      - CHOWN_EXTRA_OPTS=-R          # ... a todo lo que hay dentro (igual que en la clase del profesor)
+    mem_limit: 2g                    # driver de Spark (~1 GB) + Python + Jupyter + margen
 
   # ------------------------------------------------------------------
   # YARN (perfil "yarn"): NO arranca con "docker compose up".
