@@ -117,3 +117,13 @@ catalogo:
   raw: /raw/games/appdetails.jsonl
   # Catalogo limpio en Parquet (zona curada; lo crea el mini-paso 3.8)
   salida: /curada/games
+
+consultas:
+  # Q1: top de juegos por % de resenas positivas, solo juegos con al menos
+  # este numero de resenas (con pocas resenas el porcentaje no es fiable)
+  q1_min_resenas: 1000
+  q1_top: 10
+  # Q3: ano analizado (2020: el ultimo completo; 2021 solo tiene 3 semanas)
+  # y cuantos juegos por idioma
+  q3_anio: 2020
+  q3_top: 5
