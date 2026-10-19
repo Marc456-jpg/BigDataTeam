@@ -1,0 +1,51 @@
+{
+  "inicio": "20261019_163933",
+  "pasos_pedidos": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "pasos": [
+    {
+      "paso": 1,
+      "nombre": "descargar_dataset",
+      "segundos": 1.4,
+      "resultado": "OK",
+      "comando": null
+    },
+    {
+      "paso": 2,
+      "nombre": "subir_a_hdfs",
+      "segundos": 15.6,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/subir_a_hdfs.py"
+    },
+    {
+      "paso": 3,
+      "nombre": "descargar_catalogo",
+      "segundos": 10.4,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/descargar_catalogo.py"
+    },
+    {
+      "paso": 4,
+      "nombre": "etl_reviews",
+      "segundos": 2931.4,
+      "resultado": "FALLO (codigo 1)",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/etl_reviews.py"
+    }
+  ],
+  "segundos_total": 2958.9
+}

@@ -48,7 +48,11 @@ spark:
   # Memoria del driver (el programa que se ejecuta en el contenedor jupyter)
   # y de cada executor (en spark-worker). Caben en los topes del compose.
   memoria_driver: 1g
-  memoria_executor: 1g
+  # Executor: 1536m (antes 1g; decision 61, 19 oct). Con 1 GB y 4 tareas a la
+  # vez, el ETL se quedo sin memoria al leer y escribir Parquet (18 y 19 oct).
+  # El worker ofrece 2 GB a los executors (SPARK_WORKER_MEMORY=2g) y su
+  # contenedor tiene un tope de 2816 MB: 1,5 GB caben con margen.
+  memoria_executor: 1536m
   # Zona horaria de las fechas: UTC (decision del 16 oct), para que el
   # ano y el mes de cada resena no dependan del PC donde se ejecute
   zona_horaria: UTC

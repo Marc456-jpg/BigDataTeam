@@ -7,7 +7,7 @@ AdaptiveSparkPlan (33)
          +- * Filter (17)
             +- * HashAggregate (16)
                +- AQEShuffleRead (15), coalesced
-                  +- ShuffleQueryStage (14), Statistics(sizeInBytes=504.5 KiB, rowCount=8.45E+3)
+                  +- ShuffleQueryStage (14), Statistics(sizeInBytes=428.2 KiB, rowCount=7.16E+3)
                      +- Exchange (13)
                         +- * HashAggregate (12)
                            +- * Project (11)

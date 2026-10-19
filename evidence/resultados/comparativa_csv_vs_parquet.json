@@ -2,17 +2,17 @@
   "tamano_mb": {
     "csv": 7793.2,
     "csv_con_replicas": 15586.4,
-    "parquet": 4276.3,
-    "parquet_con_replicas": 8552.6,
-    "parquet_entre_csv": 0.549
+    "parquet": 4184.7,
+    "parquet_con_replicas": 8369.4,
+    "parquet_entre_csv": 0.537
   },
   "consulta": "groupBy(recommended).count()",
   "segundos": {
-    "csv": 44.3,
-    "parquet": 2.1,
-    "parquet_solo_2020": 0.5
+    "csv": 54.7,
+    "parquet": 3.7,
+    "parquet_solo_2020": 0.8
   },
-  "veces_mas_rapido_parquet": 20.9,
+  "veces_mas_rapido_parquet": 14.9,
   "resultado": {
     "csv": {
       "True": 19022610,
