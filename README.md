@@ -522,20 +522,48 @@ Las variables que más pesan son la longitud del texto (−0,50: las reseñas la
 
 ### 11.7 Desafío 2: tolerancia a fallos
 
-Desafío elegido: **tolerancia a fallos**, con los 2 DataNodes del entorno (replicación 2).
+Desafío elegido: **tolerancia a fallos**, con los 2 DataNodes del entorno (replicación 2). El trabajo de prueba es `python run_pipeline.py --solo 5` (`verificar_curada`):
 
-- **Plan:** durante un trabajo de Spark se para un DataNode y se documenta cómo HDFS:
-  - detecta el nodo caído (latido de 1 s, ≈ 14-20 s);
-  - sigue leyendo de la otra copia;
-  - marca los bloques sin copia suficiente;
-  - los recupera al volver el nodo.
+- solo lee, así que no toca los resultados;
+- acaba con «TODO CUADRA», lo que prueba que el fallo no alteró los datos.
 
-  Después se mata un executor para ver cómo Spark recalcula lo perdido por linaje.
-- **Evidencia ya existente de Spark recuperándose solo:**
-  - el 18 oct, 4 executors perdidos en el ETL, con el resultado verificado (`evidence/fase3/3.1d_*`);
-  - el 19 oct, 2 executors perdidos en el ML con 128 MB por trozo (`evidence/fase6/6.3_01_*`);
-  - el 19 oct, 2 executors perdidos en la pasada 1 del ETL, que salió bien al tercer intento (`evidence/ejecuciones/20261019_163933/`). En ese mismo registro, Spark aborta cuando la misma etapa falla 4 veces.
-- **Resultado del desafío:** `evidence/fase7/` *(en curso)*.
+Evidencias en `evidence/fase7/`: `7.1_00`-`7.1_16` para el escenario 1 y `7.2_00`-`7.2_05` para el escenario 2.
+
+**Escenario 1: se apaga un DataNode en mitad del trabajo (19 oct).**
+
+| Hora (UTC) | Qué pasó |
+|---|---|
+| 18:13:10 | Arranca el trabajo. A los 2 s, `docker compose stop datanode2` |
+| 18:13:33-18:14:58 | Cada tarea que intenta leer de datanode2 recibe `NoRouteToHostException` y lee la otra copia, la de datanode1. Hay 150 avisos `WARN` en el log del executor y ningún error |
+| 18:14:21 | El NameNode aún cuenta 2 DataNodes vivos (`dfsadmin`) y 0 bloques sub-replicados |
+| 18:14:58 | **TODO CUADRA** (21.612.437 filas), en 112,5 s en vez de ≈ 37 s: el tiempo extra son los intentos de leer del nodo apagado |
+| 18:24:07 | `lost heartbeat from 172.18.0.3:9866`: datanode2 se da por muerto. `fsck` sigue HEALTHY, con **178 de 178 bloques sub-replicados** y 0 perdidos. No se copia nada: con un solo nodo vivo, no hay dónde poner la segunda copia |
+| 18:37 | `docker compose start datanode2`. En menos de 1 min hay 2 vivos y 0 sub-replicados, **sin copiar nada**: al volver, el nodo presenta al NameNode la lista de sus bloques (*block report*) |
+
+**Hallazgo: la detección tardó 655 s, no los ≈ 14-20 s previstos.**
+
+- La línea `HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000`, que viene igual del compose del profesor, **no se aplica**: las imágenes bde2020 exigen escribir el guion como `___`.
+- `hdfs getconf -confKey dfs.namenode.heartbeat.recheck-interval` devuelve `300000`, el valor por defecto.
+- Con 300 s, un nodo se da por muerto tras 2 × 300 s + 10 × 1 s = 610 s, y esa revisión se hace cada 300 s: entre ≈ 10 y ≈ 15 min. Se midieron 655 s.
+- Se decidió no recrear el NameNode la víspera de la entrega y documentarlo (el comentario del `docker-compose.yml` lo explica). Para corregirlo bastaría con escribir `recheck___interval` y ejecutar `docker compose up -d namenode`.
+
+**Escenario 2: se mata el executor de Spark en mitad del trabajo (19 oct).** Un comando espera a que aparezca el executor, deja pasar 8 s y lo mata con `pkill -f CoarseGrainedExecutorBackend`.
+
+| Hora (UTC) | Qué pasó |
+|---|---|
+| 20:33:42 | Arranca el executor 0 |
+| 20:33:50 | Se mata. El driver anota `Lost executor 0 … Command exited with code 143` (SIGTERM) y pierde las 4 tareas que corrían (8.0-11.0 de la etapa 3.0) |
+| 20:33:50 → | Spark lanza el executor 1, que repite **las 12 tareas que el 0 había hecho en la etapa 3.0**: las 4 que estaban a medias y **las 8 que ya habían terminado** (0.1 … 11.1 en su log) |
+| Final | **TODO CUADRA**, mismas cifras, en 30,2 s (26 s según la web 8080). En la web, el executor 0 figura como EXITED y el 1 como KILLED: el 0 salió solo con el código 143, y al 1 lo cerró el master al terminar |
+
+**Por qué se repiten también las 8 tareas ya terminadas.** Su resultado intermedio (lo que la etapa 3.0 deja preparado para el *shuffle*) estaba guardado en el executor muerto y se perdió con él. Spark no lo copia a ningún sitio: guarda la «receta» (el linaje). Por eso volvió a leer esas partes del Parquet en HDFS y rehízo el cálculo.
+
+
+**Evidencia previa de Spark recuperándose solo:**
+
+- el 18 oct, 4 executors perdidos en el ETL, con el resultado verificado (`evidence/fase3/3.1d_*`);
+- el 19 oct, 2 executors perdidos en el ML con 128 MB por trozo (`evidence/fase6/6.3_01_*`);
+- el 19 oct, 2 executors perdidos en la pasada 1 del ETL, que salió bien al tercer intento (`evidence/ejecuciones/20261019_163933/`). En ese mismo registro, Spark aborta cuando la misma etapa falla 4 veces.
 
 ---
 
@@ -617,6 +645,7 @@ No apagues el PC a la fuerza con los contenedores en marcha.
 | Tildes rotas en PowerShell | PowerShell muestra mal los caracteres que llegan de un contenedor Linux | Los mensajes de los scripts van sin tildes a propósito |
 | `CRLF will be replaced by LF` al hacer `git add` | `run_pipeline.py` (Python de Windows) escribe sus registros con CRLF | Inofensivo: `.gitattributes` los guarda con LF |
 | Tras suspender el PC, el master de Spark da por muerto al worker | Faltan latidos durante la suspensión | Se recupera solo en segundos |
+| Un DataNode parado sigue apareciendo como vivo (`Live`) durante ≈ 10-15 min | El NameNode usa el plazo por defecto (300 s de revisión): la línea `recheck-interval` del compose no se aplica (sección 11.7) | Esperar ≈ 15 min antes de mirar `dfsadmin`, o escribir `recheck___interval` y recrear el NameNode |
 | El disco C: se queda sin espacio | El disco virtual de Docker crece y no encoge | Liberar espacio antes de ejecutar el ETL; vigilar C: durante la ejecución |
 | `OutOfMemoryError` / executors perdidos (`exited with code 52`) | El executor ejecuta 4 tareas a la vez, y leer o escribir Parquet con el texto de las reseñas usa memoria que Spark no controla | Con 1 GB fallaba (19 oct: 6 executors perdidos y el ETL abortado). Ahora el executor tiene **1536m** (`spark.memoria_executor`); además, Parquet con grupos de 16 MB y ML con trozos de 32 MB. Spark repite solo las tareas perdidas, y aborta si la misma etapa falla 4 veces seguidas |
 | C: se llena durante el ETL | El disco virtual de Docker crece con cada escritura y no encoge (≈ 25-38 GB por cada ETL) | Tener ≥ 40 GB libres antes del ETL, vigilar C: durante la ejecución y compactar el disco después (sección 15.1) |
@@ -665,7 +694,7 @@ El documento de la entrega justifica cada una con sus medidas.
 | **2 DataNodes, replicación 2** | Bloques repartidos entre nodos (B) y tolerancia a fallos (F). Un 3.º compartiría el mismo PC y el mismo disco: no añade tolerancia real |
 | Misma imagen de Spark (fijada por digest) en driver y workers | Evita `PYTHON_VERSION_MISMATCH` y que una actualización cambie la versión entre PCs |
 | Topes de memoria por contenedor y de Java (`HADOOP_HEAPSIZE_MAX`); `hadoop.env` adaptado | Java 8 no lee el tope del contenedor; el `hadoop.env` original pedía 16 GB |
-| Arranque de Hadoop con `exec` y latido de 1 s en los DataNodes | Apagado ordenado (código 143, no 137); nodo caído detectado en ≈ 14-20 s |
+| Arranque de Hadoop con `exec` y latido de 1 s en los DataNodes | Apagado ordenado (código 143, no 137); todos laten al mismo ritmo. La detección rápida de nodos caídos (≈ 14-20 s) no funciona: su ajuste no se aplica y son ≈ 10-15 min (sección 11.7) |
 | CSV leído con `multiLine` y `escape='"'` y esquema explícito de 23 columnas | Hay reseñas con saltos de línea y comillas dentro; adivinar tipos obligaría a leer 8 GB más |
 | ETL en dos pasadas (CSV → Parquet de paso → curada) | El CSV multilínea solo se puede leer con 1 tarea: se paga una vez y lo demás va en paralelo |
 | Fechas en UTC | El año (la partición) no depende del PC |
@@ -689,6 +718,7 @@ El documento de la entrega justifica cada una con sus medidas.
 - **El CSV multilínea no se puede repartir.** La primera pasada del ETL la hace una sola tarea (≈ 10 MB/s).
 - **El catálogo es de hoy.** Nombres, géneros y precios son los actuales de la tienda (por ejemplo, «Grand Theft Auto V Legacy»), no los de cada reseña. Por eso el ML no usa el precio.
 - **Memoria y disco justos.** Con ≈ 8 GB para Docker, un executor de 1,5 GB ejecuta 4 tareas a la vez. Con 1 GB, los reintentos por falta de memoria triplicaban el tiempo del ETL. Además, el disco virtual de Docker crece ≈ 25-38 GB con cada ETL y hay que compactarlo a mano.
+- **Detección lenta de DataNodes caídos.** ≈ 10-15 min (el valor por defecto de Hadoop), no los ≈ 14-20 s previstos (sección 11.7). Mientras tanto, los programas leen de la otra copia, pero más despacio.
 - **Una medición de cada tiempo.** Los tiempos son de una ejecución, no la mediana de varias.
 - **MapReduce sin combiner.** Añadir `-combiner` acercaría su shuffle al de Spark; no se ha probado.
 - **Python 3.5 en el NodeManager.** La imagen de Hadoop usa Debian 9, así que el mapper y el reducer no usan f-strings.

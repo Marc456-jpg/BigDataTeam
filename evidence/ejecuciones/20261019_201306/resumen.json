@@ -1,0 +1,16 @@
+{
+  "inicio": "20261019_201306",
+  "pasos_pedidos": [
+    5
+  ],
+  "pasos": [
+    {
+      "paso": 5,
+      "nombre": "verificar_curada",
+      "segundos": 112.5,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/verificar_curada.py"
+    }
+  ],
+  "segundos_total": 112.7
+}

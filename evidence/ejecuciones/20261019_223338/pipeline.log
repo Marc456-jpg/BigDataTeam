@@ -1,0 +1,47 @@
+[PIPELINE] Pasos: 5.verificar_curada
+
+==============================================================================
+[PIPELINE] Paso 5 · verificar_curada · controles de calidad sobre /curada/reviews
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/verificar_curada.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 20:33:41 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 20:33:41 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 20:33:41 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 20:33:41 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  26/10/19 20:33:50 ERROR TaskSchedulerImpl: Lost executor 0 on spark-worker: Command exited with code 143
+  26/10/19 20:33:50 WARN TaskSetManager: Lost task 10.0 in stage 3.0 (TID 13) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 143
+  26/10/19 20:33:50 WARN TaskSetManager: Lost task 8.0 in stage 3.0 (TID 11) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 143
+  26/10/19 20:33:50 WARN TaskSetManager: Lost task 11.0 in stage 3.0 (TID 14) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 143
+  26/10/19 20:33:50 WARN TaskSetManager: Lost task 9.0 in stage 3.0 (TID 12) (spark-worker executor 0): ExecutorLostFailure (executor 0 exited caused by one of the running tasks) Reason: Command exited with code 143
+  [VERIFICAR] Filas escritas en /curada/reviews: 21612437
+  [VERIFICAR] Filas segun el informe del ETL: 21612437
+  [VERIFICAR] review_id distintas: 21612437
+  [VERIFICAR] Filas sin columna clave: 0
+  [VERIFICAR] Filas en una carpeta de ano equivocada: 0
+  [VERIFICAR] Resenas por ano:
+          year=2010        2373
+          year=2011       31018
+          year=2012       47780
+          year=2013      198678
+          year=2014      694342
+          year=2015      918381
+          year=2016     1691308
+          year=2017     2667770
+          year=2018     2870698
+          year=2019     4112306
+          year=2020     7818161
+          year=2021      559622
+  [OK] filas escritas = informe del ETL
+  [OK] sin duplicados (distintas = filas)
+  [OK] ninguna fila sin columna clave
+  [OK] cada fila en la carpeta de su ano
+  [VERIFICAR] Resultado: TODO CUADRA
+[PIPELINE] Paso 5 OK en 30.2 s
+
+[PIPELINE] Resumen:
+    5. verificar_curada                 30.2 s  OK
+[PIPELINE] Total: 0.5 min. Registro en evidence/ejecuciones/20261019_223338
+[OK] Pipeline completo

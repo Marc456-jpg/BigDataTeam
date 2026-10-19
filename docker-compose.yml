@@ -47,7 +47,13 @@ services:
       - CLUSTER_NAME=steam
       - HADOOP_HEAPSIZE_MAX=512m       # tope de memoria de Java (-Xmx); el contenedor tiene 1 GB
       - HDFS_CONF_dfs_replication=2                          # 2 copias de cada bloque
-      - HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000  # con el latido de 1 s: nodo caido detectado en ~14-20 s (por defecto ~10 min)
+      # OJO (19 oct, Desafio 2): la linea siguiente NO se aplica. En las imagenes bde2020
+      # el guion de una propiedad se escribe "___" (recheck___interval); con "-" el ajuste
+      # se ignora y el NameNode usa el valor por defecto (300 s): un DataNode caido se
+      # detecta en ~10-15 min (medido: 655 s; hdfs getconf da 300000). La linea viene igual
+      # del compose del profesor. Se deja asi a proposito para no recrear el NameNode antes
+      # de la entrega (decision 65).
+      - HDFS_CONF_dfs_namenode_heartbeat_recheck-interval=2000
       - HDFS_CONF_dfs_heartbeat_interval=1                   # latido de 1 s (los DataNodes tambien lo llevan, ver abajo)
     env_file:
       - ./docker/hadoop.env
