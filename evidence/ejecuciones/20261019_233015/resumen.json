@@ -1,0 +1,32 @@
+{
+  "inicio": "20261019_233015",
+  "pasos_pedidos": [
+    1,
+    2,
+    3
+  ],
+  "pasos": [
+    {
+      "paso": 1,
+      "nombre": "descargar_dataset",
+      "segundos": 2.3,
+      "resultado": "OK",
+      "comando": null
+    },
+    {
+      "paso": 2,
+      "nombre": "subir_a_hdfs",
+      "segundos": 9.3,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/subir_a_hdfs.py"
+    },
+    {
+      "paso": 3,
+      "nombre": "descargar_catalogo",
+      "segundos": 10.3,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/descargar_catalogo.py"
+    }
+  ],
+  "segundos_total": 22.1
+}

@@ -47,7 +47,6 @@ from pyspark.sql import functions as F
 
 RAIZ = Path(__file__).resolve().parents[2]
 CONFIG_POR_DEFECTO = RAIZ / "config" / "pipeline.yaml"
-CARPETA_PLANES = RAIZ / "evidence" / "fase5"
 
 # En el plan «formatted», cada shuffle es un nodo «Exchange (n)»; el broadcast
 # es «BroadcastExchange (n)» (no es un shuffle: no reparte filas por la red).
@@ -78,6 +77,8 @@ def main():
         cfg = yaml.safe_load(f)
     ns = cfg["hdfs"]["namenode"].rstrip("/")
     cfg_spark, cfg_q = cfg["spark"], cfg["consultas"]
+    carpeta_planes = RAIZ / cfg_q["carpeta_planes"]
+    repeticiones = int(cfg_q["repeticiones_optimizacion"])
     minimo, top = int(cfg_q["q1_min_resenas"]), int(cfg_q["q1_top"])
 
     spark = (
@@ -131,29 +132,29 @@ def main():
         # pague sola el coste de abrir los archivos por primera vez.
         spark.read.parquet(ns + cfg["etl"]["salida"]).select("app_id").count()
 
-        CARPETA_PLANES.mkdir(parents=True, exist_ok=True)
+        carpeta_planes.mkdir(parents=True, exist_ok=True)
         resultados, filas_por_version = [], {}
         for nombre, construir, sin_broadcast in versiones:
             valor = "-1" if sin_broadcast else normal
             spark.conf.set("spark.sql.autoBroadcastJoinThreshold", valor)
             spark.conf.set("spark.sql.adaptive.autoBroadcastJoinThreshold", valor)
             tiempos = []
-            for _ in range(2):                                  # 2 veces: mejor tiempo
+            for _ in range(repeticiones):                       # varias veces: mejor tiempo
                 spark.sparkContext.setJobDescription(nombre)   # nombre visible en la Spark UI
                 df = construir()
                 t = time.perf_counter()
                 filas = df.collect()
                 tiempos.append(time.perf_counter() - t)
             plan = plan_final(df)
-            (CARPETA_PLANES / "5.2_plan_{}.txt".format(nombre)).write_text(plan, encoding="utf-8")
+            (carpeta_planes / "{}{}.txt".format(cfg_q["prefijo_planes"], nombre)).write_text(plan, encoding="utf-8")
             final = arbol_final(plan)
             shuffles = len(PATRON_SHUFFLE.findall(final))
             join = ("SortMergeJoin" if "SortMergeJoin" in final else
                     "BroadcastHashJoin" if "BroadcastHashJoin" in final else "otro")
             resultados.append((nombre, min(tiempos), join, shuffles))
             filas_por_version[nombre] = [tuple(f) for f in filas]
-            print("[OPT] {:<28} {:>6.1f} s (mejor de 2: {})  join: {:<17} shuffles: {}".format(
-                nombre, min(tiempos), ", ".join("{:.1f}".format(x) for x in tiempos), join, shuffles))
+            print("[OPT] {:<28} {:>6.1f} s (mejor de {}: {})  join: {:<17} shuffles: {}".format(
+                nombre, min(tiempos), repeticiones, ", ".join("{:.1f}".format(x) for x in tiempos), join, shuffles))
 
         spark.conf.set("spark.sql.autoBroadcastJoinThreshold", normal)
         spark.conf.set("spark.sql.adaptive.autoBroadcastJoinThreshold", normal)
@@ -163,7 +164,7 @@ def main():
         base = resultados[0][1]
         for nombre, segundos, _, _ in resultados[1:]:
             print("[OPT] {} es {:.1f} veces mas rapida que V1".format(nombre.split("_")[0], base / segundos))
-        print("[OPT] Planes guardados en evidence/fase5/5.2_plan_*.txt")
+        print("[OPT] Planes guardados en {}/{}*.txt".format(cfg_q["carpeta_planes"], cfg_q["prefijo_planes"]))
 
         if args.pausa > 0:
             print("[OPT] Spark sigue encendido {} s: abre http://localhost:4040 (pestanas SQL y Stages)".format(args.pausa))

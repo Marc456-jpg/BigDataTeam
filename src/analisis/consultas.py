@@ -81,7 +81,6 @@ def main():
             F.array_join("generos", ", ").alias("generos"),          # lista completa (decisión 49)
             F.array_join("desarrolladores", ", ").alias("desarrolladores"),
             "precio_usd")
-        res = ns + cfg["hdfs"]["resultados"]
 
         # ---------------- Q1: top juegos por % positivo + catálogo ----------
         t = time.perf_counter()
@@ -95,7 +94,7 @@ def main():
               .limit(int(cfg_q["q1_top"]))
               .select("app_id", "nombre", "pct_positivas", "resenas", "generos",
                       "desarrolladores", "precio_usd"))
-        guardar(q1, res + "/q1")
+        guardar(q1, ns + cfg_q["salida_q1"])
         print("[Q1] Top {} juegos por % de resenas positivas (min {} resenas) - {:.1f} s".format(
             cfg_q["q1_top"], cfg_q["q1_min_resenas"], time.perf_counter() - t))
         q1.show(truncate=40)
@@ -109,7 +108,7 @@ def main():
                   F.round(F.avg(horas), 1).alias("media_horas"),
                   F.round(F.percentile_approx(horas, 0.5, 10000), 1).alias("mediana_horas"))
               .orderBy("recommended"))
-        guardar(q2, res + "/q2")
+        guardar(q2, ns + cfg_q["salida_q2"])
         print("[Q2] Horas jugadas al escribir la resena (sin nulos) - {:.1f} s".format(time.perf_counter() - t))
         q2.show()
 
@@ -126,13 +125,13 @@ def main():
               .join(F.broadcast(juegos.select("app_id", "nombre")), "app_id", "left")
               .select("language", "puesto", "app_id", "nombre", "votos_utiles")
               .orderBy("language", "puesto", "app_id"))
-        guardar(q3, res + "/q3")
+        guardar(q3, ns + cfg_q["salida_q3"])
         n_idiomas = q3.select("language").distinct().count()
         print("[Q3] Top {} juegos por idioma segun votos utiles, resenas de {} ({} idiomas) - {:.1f} s".format(
             cfg_q["q3_top"], anio, n_idiomas, time.perf_counter() - t))
         q3.filter(F.col("language").isin("english", "spanish", "schinese")).show(30, truncate=40)
 
-        print("[OK] Resultados en {}/q1, /q2 y /q3".format(res))
+        print("[OK] Resultados en {}, {} y {}".format(cfg_q["salida_q1"], cfg_q["salida_q2"], cfg_q["salida_q3"]))
         return 0
     finally:
         spark.stop()                                # libera el clúster (siempre)

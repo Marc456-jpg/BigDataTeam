@@ -1,0 +1,106 @@
+{
+  "inicio": "20261019_233334",
+  "pasos_pedidos": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "pasos": [
+    {
+      "paso": 5,
+      "nombre": "verificar_curada",
+      "segundos": 45.8,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/verificar_curada.py"
+    },
+    {
+      "paso": 6,
+      "nombre": "limpiar_catalogo",
+      "segundos": 19.9,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/limpiar_catalogo.py"
+    },
+    {
+      "paso": 7,
+      "nombre": "comparar_formatos",
+      "segundos": 207.4,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/comparar_formatos.py"
+    },
+    {
+      "paso": 8,
+      "nombre": "consultas",
+      "segundos": 57.5,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/consultas.py"
+    },
+    {
+      "paso": 9,
+      "nombre": "optimizar_q1",
+      "segundos": 40.3,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/optimizar_q1.py"
+    },
+    {
+      "paso": 10,
+      "nombre": "exportar_entrada_mapreduce",
+      "segundos": 26.2,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/exportar_entrada_mapreduce.py"
+    },
+    {
+      "paso": 11,
+      "nombre": "mapreduce",
+      "segundos": 115.0,
+      "resultado": "OK",
+      "comando": null
+    },
+    {
+      "paso": 12,
+      "nombre": "rdd",
+      "segundos": 22.6,
+      "resultado": "OK",
+      "comando": null
+    },
+    {
+      "paso": 13,
+      "nombre": "comparativa_mapreduce_rdd",
+      "segundos": 3.4,
+      "resultado": "OK",
+      "comando": null
+    },
+    {
+      "paso": 14,
+      "nombre": "ml",
+      "segundos": 292.1,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ml/modelo_recomendacion.py"
+    },
+    {
+      "paso": 15,
+      "nombre": "exportar_resultados",
+      "segundos": 8.1,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/exportar_resultados.py"
+    }
+  ],
+  "segundos_total": 838.5,
+  "mapreduce": {
+    "segundos_total": 80.1,
+    "segundos_job": 61.5,
+    "job": "job_1792446028198_0001"
+  },
+  "rdd": {
+    "segundos_total": 22.6,
+    "segundos_calculo": 13.3,
+    "identicos_al_mapreduce": "SI"
+  }
+}

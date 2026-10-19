@@ -1,0 +1,128 @@
+[PIPELINE] Pasos: 7.comparar_formatos, 15.exportar_resultados
+
+==============================================================================
+[PIPELINE] Paso 7 · comparar_formatos · CSV frente a Parquet: tamano y tiempo de lectura (3 medidas)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/comparar_formatos.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 23:18:49 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 23:18:49 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 23:18:49 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 23:18:49 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [COMPARAR] CSV    : 7793.2 MB (15586.4 MB con replicas)
+  [COMPARAR] Parquet: 4184.7 MB (8369.4 MB con replicas)
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 1 de 3) ...
+             46.5 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 1 de 3) ...
+             2.1 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 1 de 3) ...
+             0.5 s
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 2 de 3) ...
+             42.8 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 2 de 3) ...
+             0.9 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 2 de 3) ...
+             0.4 s
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 3 de 3) ...
+             44.8 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 3 de 3) ...
+             0.8 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 3 de 3) ...
+             0.4 s
+  {
+    "tamano_mb": {
+      "csv": 7793.2,
+      "csv_con_replicas": 15586.4,
+      "parquet": 4184.7,
+      "parquet_con_replicas": 8369.4,
+      "parquet_entre_csv": 0.537
+    },
+    "consulta": "groupBy(recommended).count()",
+    "metodo": "cada consulta se mide 3 veces, en ronda (CSV, Parquet, Parquet 2020, CSV...), en el mismo cluster y sin otros programas; 'segundos' es la mediana",
+    "segundos": {
+      "csv": 44.8,
+      "parquet": 0.9,
+      "parquet_solo_2020": 0.4
+    },
+    "segundos_cada_medida": {
+      "csv": [
+        46.5,
+        42.8,
+        44.8
+      ],
+      "parquet": [
+        2.1,
+        0.9,
+        0.8
+      ],
+      "parquet_solo_2020": [
+        0.5,
+        0.4,
+        0.4
+      ]
+    },
+    "segundos_min_max": {
+      "csv": [
+        42.8,
+        46.5
+      ],
+      "parquet": [
+        0.8,
+        2.1
+      ],
+      "parquet_solo_2020": [
+        0.4,
+        0.5
+      ]
+    },
+    "veces_mas_rapido_parquet": 49.8,
+    "resultado": {
+      "csv": {
+        "True": 19022610,
+        "False": 2724761
+      },
+      "parquet": {
+        "True": 18891963,
+        "False": 2720474
+      },
+      "parquet_solo_2020": {
+        "True": 7142090,
+        "False": 676071
+      }
+    },
+    "nota": "El CSV incluye las filas corruptas y las duplicadas que el ETL quito; por eso sus cuentas son algo mayores que las del Parquet."
+  }
+  [OK] Comparativa guardada en hdfs://namenode:9000/resultados/comparativa/csv_vs_parquet.json
+[PIPELINE] Paso 7 OK en 151.2 s
+
+==============================================================================
+[PIPELINE] Paso 15 · exportar_resultados · copia los resultados pequenos y la cuarentena a evidence/resultados
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/exportar_resultados.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 23:21:20 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 23:21:20 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 23:21:20 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 23:21:20 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [EXPORTAR] /resultados/q1                                -> q1_top_juegos_pct_positivo.csv (844 bytes, 11 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/q2                                -> q2_horas_al_resenar.csv (96 bytes, 3 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/q3                                -> q3_top5_por_idioma_2020.csv (5648 bytes, 142 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/mapreduce/positivos_por_juego     -> mapreduce_positivos_por_juego.tsv (7712 bytes, 315 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/rdd/positivos_por_juego           -> rdd_positivos_por_juego.tsv (7712 bytes, 315 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/calidad/etl_reviews.json          -> calidad_etl_reviews.json (1416 bytes, 52 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/comparativa/csv_vs_parquet.json   -> comparativa_csv_vs_parquet.json (1255 bytes, 62 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/comparativa/mapreduce_vs_rdd.json -> comparativa_mapreduce_vs_rdd.json (711 bytes, 20 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/ml/regresion_logistica.json       -> ml_regresion_logistica.json (2689 bytes, 75 lineas, 1 trozo(s))
+  [EXPORTAR] /quarantine/reviews                           -> cuarentena_reviews.json (9515 bytes, 7 lineas, 1 trozo(s))
+  [OK] Resultados copiados en evidence/resultados
+[PIPELINE] Paso 15 OK en 7.7 s
+
+[PIPELINE] Resumen:
+    7. comparar_formatos               151.2 s  OK
+   15. exportar_resultados               7.7 s  OK
+[PIPELINE] Total: 2.7 min. Registro en evidence/ejecuciones/20261020_011845
+[OK] Pipeline completo

@@ -19,8 +19,11 @@ Este programa hace exactamente lo que haríamos a mano en PowerShell (los mismos
 guardándolo todo.
 
 Solo usa la biblioteca estándar de Python (no hay que instalar nada en el PC).
-Los parámetros se leen de config/pipeline.yaml (se le pide al contenedor jupyter
-que lo traduzca, porque él ya tiene la librería de YAML).
+Todas las rutas y parámetros (de los datos y del entorno: contenedores, carpeta
+del proyecto, spark-submit, JAR de Streaming...) se leen de config/pipeline.yaml
+(decisión 66). En el código solo quedan dos datos imprescindibles para LEER esa
+configuración: dónde está el archivo (config/pipeline.yaml) y qué contenedor
+sabe traducir YAML (jupyter, que tiene la librería; el PC no la necesita).
 
 Cada paso es idempotente (decisión 40 y siguientes): repetir el pipeline no
 duplica nada. Los pasos de descarga y subida se saltan solos si ya están hechos.
@@ -50,16 +53,28 @@ import time
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent
-TRABAJO = "/home/jovyan/work/"                       # la carpeta del proyecto vista desde jupyter
-SPARK_SUBMIT = ["docker", "exec", "-u", "jovyan", "jupyter",
-                "/usr/local/spark/bin/spark-submit", "--driver-memory", "1g",
-                "--conf", "spark.log.level=WARN"]
-JAR_STREAMING = "/opt/hadoop-3.2.1/share/hadoop/tools/lib/hadoop-streaming-3.2.1.jar"
+# Lo único fijo: dónde está la configuración y quién la traduce (ver arriba).
+ARCHIVO_CONFIG = RAIZ / "config" / "pipeline.yaml"
+CONTENEDOR_YAML = "jupyter"
 
 
-def spark(script, *extra):
+def en_proyecto(cfg, ruta):
+    """Ruta de un archivo del proyecto vista desde dentro del contenedor jupyter."""
+    return cfg["entorno"]["carpeta_proyecto"].rstrip("/") + "/" + ruta
+
+
+def comando_spark(cfg, script, *extra):
     """Comando para lanzar un script de Spark del proyecto en el clúster."""
-    return SPARK_SUBMIT + [TRABAJO + script] + list(extra)
+    ent = cfg["entorno"]
+    return (["docker", "exec", "-u", ent["usuario_spark"], ent["contenedor_spark"],
+             ent["spark_submit"], "--driver-memory", str(cfg["spark"]["memoria_driver"]),
+             "--conf", "spark.log.level=" + ent["nivel_log_spark"],
+             en_proyecto(cfg, script)] + list(extra))
+
+
+def hdfs(cfg, *argumentos):
+    """Comando que se ejecuta en el contenedor de HDFS (hdfs dfs ..., hadoop jar ...)."""
+    return ["docker", "exec", cfg["entorno"]["contenedor_hdfs"]] + list(argumentos)
 
 
 class Registro:
@@ -100,11 +115,12 @@ def ejecutar(cmd, log, entrada=None, mostrar=True):
 
 
 def leer_config(log):
-    """Le pide al contenedor jupyter que convierta el YAML a JSON (así el PC no
-    necesita la librería de YAML)."""
-    codigo = ("import json, yaml; print(json.dumps(yaml.safe_load(open("
-              "'/home/jovyan/work/config/pipeline.yaml', encoding='utf-8'))))")
-    rc, salida = ejecutar(["docker", "exec", "jupyter", "python", "-c", codigo], log, mostrar=False)
+    """Lee config/pipeline.yaml en el PC y se lo pasa al contenedor jupyter, que
+    lo traduce a JSON (así el PC no necesita la librería de YAML)."""
+    texto = ARCHIVO_CONFIG.read_text(encoding="utf-8")
+    codigo = "import json, sys, yaml; print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+    rc, salida = ejecutar(["docker", "exec", "-i", CONTENEDOR_YAML, "python", "-c", codigo],
+                          log, entrada=texto, mostrar=False)
     if rc != 0:
         log(salida)
         raise SystemExit("[ERROR] No se pudo leer la configuracion. ¿Esta el cluster encendido "
@@ -120,14 +136,14 @@ def paso_descargar(ctx):
     """Descarga el CSV de Kaggle si hace falta. Si ya está en HDFS con el tamaño
     exacto, no hace falta ni el CSV local (se puede borrar para ahorrar 8 GB)."""
     cfg, log = ctx["cfg"], ctx["log"]
-    rc, salida = ejecutar(["docker", "exec", "namenode", "hdfs", "dfs", "-stat", "%b",
-                           cfg["etl"]["csv_raw"]], log, mostrar=False)
+    rc, salida = ejecutar(hdfs(cfg, "hdfs", "dfs", "-stat", "%b", cfg["etl"]["csv_raw"]),
+                          log, mostrar=False)
     ultima = salida.strip().splitlines()[-1] if salida.strip() else ""
     if rc == 0 and ultima == str(cfg["dataset"]["tamano_bytes"]):
         log("[PIPELINE] El CSV ya esta en HDFS con el tamano exacto: no hace falta descargarlo.")
         return 0
-    return ejecutar(["docker", "exec", "jupyter", "python",
-                     TRABAJO + "scripts/descargar_dataset.py"], log)[0]
+    return ejecutar(["docker", "exec", cfg["entorno"]["contenedor_spark"], "python",
+                     en_proyecto(cfg, "scripts/descargar_dataset.py")], log)[0]
 
 
 def esperar_sanos(contenedores, segundos, log):
@@ -163,28 +179,28 @@ def paso_mapreduce(ctx):
     """Job de Hadoop Streaming en YARN (apartado C). Enciende YARN solo para
     este paso y lo apaga al terminar, pase lo que pase, para dejar memoria."""
     cfg, log = ctx["cfg"], ctx["log"]
-    cfg_mr, cfg_pl = cfg["mapreduce"], cfg["pipeline"]
-    rc = ejecutar(["docker", "compose", "--profile", "yarn", "up", "-d",
-                   "resourcemanager", "nodemanager"], log)[0]
+    cfg_mr, cfg_pl, ent = cfg["mapreduce"], cfg["pipeline"], cfg["entorno"]
+    yarn = list(ent["servicios_yarn"])
+    rc = ejecutar(["docker", "compose", "--profile", ent["perfil_yarn"], "up", "-d"] + yarn, log)[0]
     try:
-        if rc != 0 or not esperar_sanos(["resourcemanager", "nodemanager"],
-                                        int(cfg_pl["espera_yarn_s"]), log):
+        if rc != 0 or not esperar_sanos(yarn, int(cfg_pl["espera_yarn_s"]), log):
             return 1
-        # Los dos scripts se copian al namenode, que es desde donde se lanza.
-        if ejecutar(["docker", "cp", str(RAIZ / "mapreduce" / "positivos_por_juego"),
-                     "namenode:/tmp/"], log)[0] != 0:
+        # Los dos scripts se copian al contenedor de HDFS, que es desde donde se lanza.
+        carpeta_local = RAIZ / cfg_mr["carpeta_scripts"]
+        temporal = ent["carpeta_temporal_hdfs"].rstrip("/")
+        remota = temporal + "/" + carpeta_local.name
+        if ejecutar(["docker", "cp", str(carpeta_local),
+                     ent["contenedor_hdfs"] + ":" + temporal + "/"], log)[0] != 0:
             return 1
         # Idempotencia: Hadoop no escribe en una carpeta que ya existe.
-        ejecutar(["docker", "exec", "namenode", "hdfs", "dfs", "-rm", "-r", "-f",
-                  cfg_mr["salida"]], log)
+        ejecutar(hdfs(cfg, "hdfs", "dfs", "-rm", "-r", "-f", cfg_mr["salida"]), log)
         inicio = time.perf_counter()
-        rc, salida = ejecutar([
-            "docker", "exec", "namenode", "hadoop", "jar", JAR_STREAMING,
-            "-files", "/tmp/positivos_por_juego/mapper_positivos.py,"
-                      "/tmp/positivos_por_juego/reducer_positivos.py",
-            "-mapper", "python3 mapper_positivos.py",
-            "-reducer", "python3 reducer_positivos.py",
-            "-input", cfg_mr["entrada"], "-output", cfg_mr["salida"]], log)
+        rc, salida = ejecutar(hdfs(
+            cfg, "hadoop", "jar", ent["jar_streaming"],
+            "-files", remota + "/" + cfg_mr["mapper"] + "," + remota + "/" + cfg_mr["reducer"],
+            "-mapper", cfg_mr["interprete"] + " " + cfg_mr["mapper"],
+            "-reducer", cfg_mr["interprete"] + " " + cfg_mr["reducer"],
+            "-input", cfg_mr["entrada"], "-output", cfg_mr["salida"]), log)
         total = time.perf_counter() - inicio
         job = re.search(r"Running job: (job_\S+)", salida)
         ctx["mapreduce"] = {"segundos_total": round(total, 1),
@@ -192,15 +208,14 @@ def paso_mapreduce(ctx):
                             "job": job.group(1) if job else None}
         return rc
     finally:
-        ejecutar(["docker", "compose", "--profile", "yarn", "stop",
-                  "resourcemanager", "nodemanager"], log)
+        ejecutar(["docker", "compose", "--profile", ent["perfil_yarn"], "stop"] + yarn, log)
 
 
 def paso_rdd(ctx):
     """El mismo cálculo con RDDs de Spark; el script ya compara con el MapReduce."""
     log = ctx["log"]
     inicio = time.perf_counter()
-    rc, salida = ejecutar(spark("src/procesamiento/positivos_por_juego_rdd.py"), log)
+    rc, salida = ejecutar(comando_spark(ctx["cfg"], "src/procesamiento/positivos_por_juego_rdd.py"), log)
     total = time.perf_counter() - inicio
     calculo = re.search(r"Calculo y escritura en ([\d.]+) s", salida)
     iguales = re.search(r"identicos al MapReduce: (SI|NO)", salida)
@@ -237,41 +252,42 @@ def paso_comparativa(ctx):
     texto = json.dumps(comparativa, indent=2, ensure_ascii=False)
     log(texto)
     ruta = cfg["pipeline"]["comparativa_mr_rdd"]
-    ejecutar(["docker", "exec", "namenode", "hdfs", "dfs", "-mkdir", "-p",
-              ruta.rsplit("/", 1)[0]], log, mostrar=False)
-    rc = ejecutar(["docker", "exec", "-i", "namenode", "hdfs", "dfs", "-put", "-f", "-", ruta],
-                  log, entrada=texto + "\n")[0]
+    ejecutar(hdfs(cfg, "hdfs", "dfs", "-mkdir", "-p", ruta.rsplit("/", 1)[0]), log, mostrar=False)
+    rc = ejecutar(["docker", "exec", "-i", cfg["entorno"]["contenedor_hdfs"],
+                   "hdfs", "dfs", "-put", "-f", "-", ruta], log, entrada=texto + "\n")[0]
     if rc == 0:
         log("[PIPELINE] Comparativa guardada en " + ruta)
     return rc
 
 
 def pasos():
-    """(número, nombre, qué hace, función o comando de Spark)."""
+    """(número, nombre, qué hace, función o script de Spark del proyecto).
+
+    Los scripts se dan como ruta dentro del repositorio; el comando completo
+    (contenedor, spark-submit, memoria...) se construye con la configuración."""
     return [
         (1, "descargar_dataset", "CSV de Kaggle (se salta si ya esta en HDFS o en data/)", paso_descargar),
-        (2, "subir_a_hdfs", "CSV -> /raw de HDFS (se salta si ya esta)", spark("src/ingesta/subir_a_hdfs.py")),
-        (3, "descargar_catalogo", "catalogo de juegos de la API de Steam -> /raw (se salta si ya esta)",
-         spark("src/ingesta/descargar_catalogo.py")),
-        (4, "etl_reviews", "ETL: CSV -> Parquet en /curada + cuarentena + informe de calidad (~35 min)",
-         spark("src/procesamiento/etl_reviews.py")),
-        (5, "verificar_curada", "controles de calidad sobre /curada/reviews",
-         spark("src/procesamiento/verificar_curada.py")),
-        (6, "limpiar_catalogo", "catalogo limpio -> /curada/games", spark("src/procesamiento/limpiar_catalogo.py")),
-        (7, "comparar_formatos", "CSV frente a Parquet: tamano y tiempo de lectura",
-         spark("src/procesamiento/comparar_formatos.py")),
-        (8, "consultas", "preguntas Q1-Q3 -> /resultados/q1..q3", spark("src/analisis/consultas.py")),
+        (2, "subir_a_hdfs", "CSV -> zona raw de HDFS (se salta si ya esta)", "src/ingesta/subir_a_hdfs.py"),
+        (3, "descargar_catalogo", "catalogo de juegos de la API de Steam -> zona raw (se salta si ya esta)",
+         "src/ingesta/descargar_catalogo.py"),
+        (4, "etl_reviews", "ETL: CSV -> Parquet en la zona curada + cuarentena + informe de calidad (~10 min)",
+         "src/procesamiento/etl_reviews.py"),
+        (5, "verificar_curada", "controles de calidad sobre la zona curada", "src/procesamiento/verificar_curada.py"),
+        (6, "limpiar_catalogo", "catalogo limpio -> zona curada", "src/procesamiento/limpiar_catalogo.py"),
+        (7, "comparar_formatos", "CSV frente a Parquet: tamano y tiempo de lectura (3 medidas)",
+         "src/procesamiento/comparar_formatos.py"),
+        (8, "consultas", "preguntas Q1-Q3 -> zona resultados", "src/analisis/consultas.py"),
         (9, "optimizar_q1", "explain + optimizacion medida de Q1 (planes en evidence/fase5)",
-         spark("src/analisis/optimizar_q1.py")),
+         "src/analisis/optimizar_q1.py"),
         (10, "exportar_entrada_mapreduce", "entrada de texto para el MapReduce",
-         spark("src/procesamiento/exportar_entrada_mapreduce.py")),
+         "src/procesamiento/exportar_entrada_mapreduce.py"),
         (11, "mapreduce", "job de Hadoop Streaming en YARN (enciende y apaga YARN)", paso_mapreduce),
         (12, "rdd", "mismo calculo con RDDs de Spark y comparacion de resultados", paso_rdd),
-        (13, "comparativa_mapreduce_rdd", "tiempos MapReduce frente a RDD -> /resultados/comparativa",
+        (13, "comparativa_mapreduce_rdd", "tiempos MapReduce frente a RDD -> zona resultados",
          paso_comparativa),
-        (14, "ml", "LogisticRegression con todas las resenas (AUC)", spark("src/ml/modelo_recomendacion.py")),
-        (15, "exportar_resultados", "copia los resultados pequenos a evidence/resultados",
-         spark("src/analisis/exportar_resultados.py")),
+        (14, "ml", "LogisticRegression con todas las resenas (AUC)", "src/ml/modelo_recomendacion.py"),
+        (15, "exportar_resultados", "copia los resultados pequenos y la cuarentena a evidence/resultados",
+         "src/analisis/exportar_resultados.py"),
     ]
 
 
@@ -321,12 +337,13 @@ def main():
             log("=" * 78)
             log("[PIPELINE] Paso {} · {} · {}".format(n, nombre, que))
             log("=" * 78)
+            comando = None if callable(accion) else comando_spark(ctx["cfg"], accion)
             inicio = time.perf_counter()
-            rc = accion(ctx) if callable(accion) else ejecutar(accion, log)[0]
+            rc = accion(ctx) if callable(accion) else ejecutar(comando, log)[0]
             segundos = round(time.perf_counter() - inicio, 1)
             resumen["pasos"].append({"paso": n, "nombre": nombre, "segundos": segundos,
                                      "resultado": "OK" if rc == 0 else "FALLO (codigo {})".format(rc),
-                                     "comando": None if callable(accion) else " ".join(accion)})
+                                     "comando": None if comando is None else " ".join(comando)})
             log("[PIPELINE] Paso {} {} en {:.1f} s".format(n, "OK" if rc == 0 else "FALLO", segundos))
             if rc != 0:
                 log("[PIPELINE] Se detiene el pipeline en el paso {}. Arreglalo y vuelve a lanzarlo "

@@ -7,12 +7,44 @@
     "parquet_entre_csv": 0.537
   },
   "consulta": "groupBy(recommended).count()",
+  "metodo": "cada consulta se mide 3 veces, en ronda (CSV, Parquet, Parquet 2020, CSV...), en el mismo cluster y sin otros programas; 'segundos' es la mediana",
   "segundos": {
-    "csv": 54.7,
-    "parquet": 3.7,
-    "parquet_solo_2020": 0.8
+    "csv": 44.8,
+    "parquet": 0.9,
+    "parquet_solo_2020": 0.4
   },
-  "veces_mas_rapido_parquet": 14.9,
+  "segundos_cada_medida": {
+    "csv": [
+      46.5,
+      42.8,
+      44.8
+    ],
+    "parquet": [
+      2.1,
+      0.9,
+      0.8
+    ],
+    "parquet_solo_2020": [
+      0.5,
+      0.4,
+      0.4
+    ]
+  },
+  "segundos_min_max": {
+    "csv": [
+      42.8,
+      46.5
+    ],
+    "parquet": [
+      0.8,
+      2.1
+    ],
+    "parquet_solo_2020": [
+      0.4,
+      0.5
+    ]
+  },
+  "veces_mas_rapido_parquet": 49.8,
   "resultado": {
     "csv": {
       "True": 19022610,

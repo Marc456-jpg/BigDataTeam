@@ -1,0 +1,24 @@
+{
+  "inicio": "20261020_011845",
+  "pasos_pedidos": [
+    7,
+    15
+  ],
+  "pasos": [
+    {
+      "paso": 7,
+      "nombre": "comparar_formatos",
+      "segundos": 151.2,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/comparar_formatos.py"
+    },
+    {
+      "paso": 15,
+      "nombre": "exportar_resultados",
+      "segundos": 7.7,
+      "resultado": "OK",
+      "comando": "docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/exportar_resultados.py"
+    }
+  ],
+  "segundos_total": 159.1
+}

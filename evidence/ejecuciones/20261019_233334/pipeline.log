@@ -1,0 +1,507 @@
+[PIPELINE] Pasos: 5.verificar_curada, 6.limpiar_catalogo, 7.comparar_formatos, 8.consultas, 9.optimizar_q1, 10.exportar_entrada_mapreduce, 11.mapreduce, 12.rdd, 13.comparativa_mapreduce_rdd, 14.ml, 15.exportar_resultados
+
+==============================================================================
+[PIPELINE] Paso 5 · verificar_curada · controles de calidad sobre la zona curada
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/verificar_curada.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:33:38 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:33:38 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:33:38 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:33:38 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [VERIFICAR] Filas escritas en /curada/reviews: 21612437
+  [VERIFICAR] Filas segun el informe del ETL: 21612437
+  [VERIFICAR] review_id distintas: 21612437
+  [VERIFICAR] Filas sin columna clave: 0
+  [VERIFICAR] Filas en una carpeta de ano equivocada: 0
+  [VERIFICAR] Resenas por ano:
+          year=2010        2373
+          year=2011       31018
+          year=2012       47780
+          year=2013      198678
+          year=2014      694342
+          year=2015      918381
+          year=2016     1691308
+          year=2017     2667770
+          year=2018     2870698
+          year=2019     4112306
+          year=2020     7818161
+          year=2021      559622
+  [OK] filas escritas = informe del ETL
+  [OK] sin duplicados (distintas = filas)
+  [OK] ninguna fila sin columna clave
+  [OK] cada fila en la carpeta de su ano
+  [VERIFICAR] Resultado: TODO CUADRA
+[PIPELINE] Paso 5 OK en 45.8 s
+
+==============================================================================
+[PIPELINE] Paso 6 · limpiar_catalogo · catalogo limpio -> zona curada
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/limpiar_catalogo.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:34:24 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:34:24 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:34:24 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:34:24 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [CATALOGO] Juegos: 315 | en la tienda: 315 | sin nombre: 0 | sin fecha: 2 | gratis: 11
+  [CATALOGO] Columnas: app_id, en_tienda, nombre, tipo, es_gratis, precio_usd, generos, num_generos, desarrolladores, editores, fecha_salida, descargado_utc
+  [CATALOGO] Generos por juego (media): 2.53
+  [CATALOGO] Generos mas frecuentes (juegos que tienen cada genero):
+          Action                     179
+          Indie                      141
+          Adventure                  131
+          Simulation                  88
+          RPG                         83
+          Strategy                    76
+          Casual                      34
+          Massively Multiplayer       18
+  [OK] Catalogo limpio en hdfs://namenode:9000/curada/games
+[PIPELINE] Paso 6 OK en 19.9 s
+
+==============================================================================
+[PIPELINE] Paso 7 · comparar_formatos · CSV frente a Parquet: tamano y tiempo de lectura (3 medidas)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/comparar_formatos.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:34:44 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:34:44 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:34:44 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:34:44 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [COMPARAR] CSV    : 7793.2 MB (15586.4 MB con replicas)
+  [COMPARAR] Parquet: 4184.7 MB (8369.4 MB con replicas)
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 1 de 3) ...
+             59.4 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 1 de 3) ...
+             4.1 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 1 de 3) ...
+             1.1 s
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 2 de 3) ...
+             64.4 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 2 de 3) ...
+             1.4 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 2 de 3) ...
+             0.6 s
+  [COMPARAR] CSV: resenas por recommended (lee el archivo entero) (medida 3 de 3) ...
+             62.5 s
+  [COMPARAR] Parquet: misma consulta (solo la columna recommended) (medida 3 de 3) ...
+             1.3 s
+  [COMPARAR] Parquet: misma consulta solo 2020 (poda de particiones) (medida 3 de 3) ...
+             0.6 s
+  {
+    "tamano_mb": {
+      "csv": 7793.2,
+      "csv_con_replicas": 15586.4,
+      "parquet": 4184.7,
+      "parquet_con_replicas": 8369.4,
+      "parquet_entre_csv": 0.537
+    },
+    "consulta": "groupBy(recommended).count()",
+    "metodo": "cada consulta se mide 3 veces, en ronda (CSV, Parquet, Parquet 2020, CSV...), en el mismo cluster y sin otros programas; 'segundos' es la mediana",
+    "segundos": {
+      "csv": 62.5,
+      "parquet": 1.4,
+      "parquet_solo_2020": 0.6
+    },
+    "segundos_cada_medida": {
+      "csv": [
+        59.4,
+        64.4,
+        62.5
+      ],
+      "parquet": [
+        4.1,
+        1.4,
+        1.3
+      ],
+      "parquet_solo_2020": [
+        1.1,
+        0.6,
+        0.6
+      ]
+    },
+    "segundos_min_max": {
+      "csv": [
+        59.4,
+        64.4
+      ],
+      "parquet": [
+        1.3,
+        4.1
+      ],
+      "parquet_solo_2020": [
+        0.6,
+        1.1
+      ]
+    },
+    "veces_mas_rapido_parquet": 44.6,
+    "resultado": {
+      "csv": {
+        "True": 19022610,
+        "False": 2724761
+      },
+      "parquet": {
+        "True": 18891963,
+        "False": 2720474
+      },
+      "parquet_solo_2020": {
+        "True": 7142090,
+        "False": 676071
+      }
+    },
+    "nota": "El CSV incluye las filas corruptas y las duplicadas que el ETL quito; por eso sus cuentas son algo mayores que las del Parquet."
+  }
+  [OK] Comparativa guardada en hdfs://namenode:9000/resultados/comparativa/csv_vs_parquet.json
+[PIPELINE] Paso 7 OK en 207.4 s
+
+==============================================================================
+[PIPELINE] Paso 8 · consultas · preguntas Q1-Q3 -> zona resultados
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/consultas.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:38:12 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:38:12 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:38:12 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:38:13 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [Q1] Top 10 juegos por % de resenas positivas (min 1000 resenas) - 9.9 s
+  +-------+-----------------------------+-------------+-------+-----------------------------------+--------------------+----------+
+  | app_id|                       nombre|pct_positivas|resenas|                            generos|     desarrolladores|precio_usd|
+  +-------+-----------------------------+-------------+-------+-----------------------------------+--------------------+----------+
+  |1229490|                    ULTRAKILL|        99.53|   5584|        Action, Indie, Early Access|Arsi "Hakita" Patala|     29.99|
+  |1144400|                Senren＊Banka|         99.4|   5034|                  Adventure, Casual|            YUZUSOFT|     34.99|
+  |1055540|                 A Short Hike|        99.14|   5847|                   Adventure, Indie|            adamgryu|      7.99|
+  |1089980|The Henry Stickmin Collection|        99.03|  19400|           Adventure, Casual, Indie|     PuffballsUnited|      5.99|
+  | 427520|                     Factorio|        98.92| 108282|Casual, Indie, Simulation, Strategy|  Wube Software LTD.|      35.0|
+  |1145360|                        Hades|        98.88| 118416|                 Action, Indie, RPG|    Supergiant Games|     24.99|
+  |    620|                     Portal 2|        98.77| 232329|                  Action, Adventure|               Valve|      9.99|
+  |1118200|            People Playground|        98.77|  26319|  Action, Casual, Indie, Simulation|             mestiez|      9.99|
+  |1291340|                   Townscaper|        98.71|   7601|          Casual, Indie, Simulation|      Oskar Stålberg|      2.39|
+  | 546560|              Half-Life: Alyx|        98.69|  51099|                  Action, Adventure|               Valve|     59.99|
+  +-------+-----------------------------+-------------+-------+-----------------------------------+--------------------+----------+
+  
+  [Q2] Horas jugadas al escribir la resena (sin nulos) - 9.3 s
+  +-----------+--------+-----------+-------------+
+  |recommended| resenas|media_horas|mediana_horas|
+  +-----------+--------+-----------+-------------+
+  |      false| 2715949|      202.5|         37.3|
+  |       true|18870834|      139.5|         30.8|
+  +-----------+--------+-----------+-------------+
+  
+  [Q3] Top 5 juegos por idioma segun votos utiles, resenas de 2020 (28 idiomas) - 5.4 s
+  +--------+------+-------+------------------------------+------------+
+  |language|puesto| app_id|                        nombre|votos_utiles|
+  +--------+------+-------+------------------------------+------------+
+  | english|     1| 945360|                      Among Us|      171445|
+  | english|     2| 782330|                  DOOM Eternal|      145024|
+  | english|     3| 739630|                  Phasmophobia|       93751|
+  | english|     4| 275850|                  No Man's Sky|       89355|
+  | english|     5|1113000|              Persona 4 Golden|       86330|
+  |schinese|     1| 431960|              Wallpaper Engine|      151621|
+  |schinese|     2| 578080|           PUBG: BATTLEGROUNDS|      151076|
+  |schinese|     3| 271590|     Grand Theft Auto V Legacy|      149018|
+  |schinese|     4| 644560|                        Mirror|      108174|
+  |schinese|     5| 359550|Tom Clancy's Rainbow Six Siege|       79367|
+  | spanish|     1| 945360|                      Among Us|       20534|
+  | spanish|     2| 105600|                      Terraria|        9775|
+  | spanish|     3| 739630|                  Phasmophobia|        8465|
+  | spanish|     4| 252950|                Rocket League®|        7069|
+  | spanish|     5| 381210|              Dead by Daylight|        6533|
+  +--------+------+-------+------------------------------+------------+
+  
+  [OK] Resultados en /resultados/q1, /resultados/q2 y /resultados/q3
+[PIPELINE] Paso 8 OK en 57.5 s
+
+==============================================================================
+[PIPELINE] Paso 9 · optimizar_q1 · explain + optimizacion medida de Q1 (planes en evidence/fase5)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/optimizar_q1.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:39:09 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:39:09 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:39:09 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:39:09 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [OPT] V1_join_primero_sortmerge       4.6 s (mejor de 2: 7.9, 4.6)  join: SortMergeJoin     shuffles: 2
+  [OPT] V2_join_primero_broadcast       2.0 s (mejor de 2: 2.4, 2.0)  join: BroadcastHashJoin shuffles: 1
+  [OPT] V3_agregar_antes_broadcast      1.1 s (mejor de 2: 1.4, 1.1)  join: BroadcastHashJoin shuffles: 1
+  [OPT] Las 3 versiones dan el mismo top 10: SI
+  [OPT] V2 es 2.3 veces mas rapida que V1
+  [OPT] V3 es 4.3 veces mas rapida que V1
+  [OPT] Planes guardados en evidence/fase5/5.2_plan_*.txt
+  [OK] Optimizacion de Q1 medida
+[PIPELINE] Paso 9 OK en 40.3 s
+
+==============================================================================
+[PIPELINE] Paso 10 · exportar_entrada_mapreduce · entrada de texto para el MapReduce
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/exportar_entrada_mapreduce.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:39:49 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:39:49 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:39:49 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:39:49 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [EXPORTAR] hdfs://namenode:9000/curada/reviews -> hdfs://namenode:9000/curada/mapreduce_entrada
+  [EXPORTAR] Lineas escritas: 21612437
+  [OK] Entrada del MapReduce lista en 17.6 s
+[PIPELINE] Paso 10 OK en 26.2 s
+
+==============================================================================
+[PIPELINE] Paso 11 · mapreduce · job de Hadoop Streaming en YARN (enciende y apaga YARN)
+==============================================================================
+$ docker compose --profile yarn up -d resourcemanager nodemanager
+   Container resourcemanager Starting 
+   Container nodemanager Starting 
+   Container resourcemanager Started 
+   Container nodemanager Started 
+[PIPELINE] YARN listo: resourcemanager, nodemanager healthy
+$ docker cp C:\steam-bigdata\mapreduce\positivos_por_juego namenode:/tmp/
+$ docker exec namenode hdfs dfs -rm -r -f /resultados/mapreduce/positivos_por_juego
+  Deleted /resultados/mapreduce/positivos_por_juego
+$ docker exec namenode hadoop jar /opt/hadoop-3.2.1/share/hadoop/tools/lib/hadoop-streaming-3.2.1.jar -files /tmp/positivos_por_juego/mapper_positivos.py,/tmp/positivos_por_juego/reducer_positivos.py -mapper python3 mapper_positivos.py -reducer python3 reducer_positivos.py -input /curada/mapreduce_entrada -output /resultados/mapreduce/positivos_por_juego
+  packageJobJar: [/tmp/hadoop-unjar3670973493688583387/] [] /tmp/streamjob5949767633848881228.jar tmpDir=null
+  2026-10-19 21:41:02,311 INFO client.RMProxy: Connecting to ResourceManager at resourcemanager/172.18.0.8:8032
+  2026-10-19 21:41:02,414 INFO client.AHSProxy: Connecting to Application History server at historyserver:10200
+  2026-10-19 21:41:02,435 INFO client.RMProxy: Connecting to ResourceManager at resourcemanager/172.18.0.8:8032
+  2026-10-19 21:41:02,435 INFO client.AHSProxy: Connecting to Application History server at historyserver:10200
+  2026-10-19 21:41:02,651 INFO mapreduce.JobResourceUploader: Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/root/.staging/job_1792446028198_0001
+  2026-10-19 21:41:02,740 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:02,825 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:02,852 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:02,917 INFO mapred.FileInputFormat: Total input files to process : 8
+  2026-10-19 21:41:02,948 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:02,969 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:02,979 INFO mapreduce.JobSubmitter: number of splits:8
+  2026-10-19 21:41:03,081 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+  2026-10-19 21:41:03,101 INFO mapreduce.JobSubmitter: Submitting tokens for job: job_1792446028198_0001
+  2026-10-19 21:41:03,101 INFO mapreduce.JobSubmitter: Executing with tokens: []
+  2026-10-19 21:41:03,244 INFO conf.Configuration: resource-types.xml not found
+  2026-10-19 21:41:03,245 INFO resource.ResourceUtils: Unable to find 'resource-types.xml'.
+  2026-10-19 21:41:03,561 INFO impl.YarnClientImpl: Submitted application application_1792446028198_0001
+  2026-10-19 21:41:03,600 INFO mapreduce.Job: The url to track the job: http://resourcemanager:8088/proxy/application_1792446028198_0001/
+  2026-10-19 21:41:03,601 INFO mapreduce.Job: Running job: job_1792446028198_0001
+  2026-10-19 21:41:09,679 INFO mapreduce.Job: Job job_1792446028198_0001 running in uber mode : false
+  2026-10-19 21:41:09,680 INFO mapreduce.Job:  map 0% reduce 0%
+  2026-10-19 21:41:20,784 INFO mapreduce.Job:  map 13% reduce 0%
+  2026-10-19 21:41:21,790 INFO mapreduce.Job:  map 25% reduce 0%
+  2026-10-19 21:41:22,800 INFO mapreduce.Job:  map 38% reduce 0%
+  2026-10-19 21:41:30,867 INFO mapreduce.Job:  map 50% reduce 0%
+  2026-10-19 21:41:32,880 INFO mapreduce.Job:  map 75% reduce 0%
+  2026-10-19 21:41:40,938 INFO mapreduce.Job:  map 88% reduce 0%
+  2026-10-19 21:41:41,946 INFO mapreduce.Job:  map 100% reduce 0%
+  2026-10-19 21:41:55,008 INFO mapreduce.Job:  map 100% reduce 80%
+  2026-10-19 21:42:01,036 INFO mapreduce.Job:  map 100% reduce 91%
+  2026-10-19 21:42:05,056 INFO mapreduce.Job:  map 100% reduce 100%
+  2026-10-19 21:42:05,063 INFO mapreduce.Job: Job job_1792446028198_0001 completed successfully
+  2026-10-19 21:42:05,118 INFO mapreduce.Job: Counters: 55
+  	File System Counters
+  		FILE: Number of bytes read=714528
+  		FILE: Number of bytes written=3548340
+  		FILE: Number of read operations=0
+  		FILE: Number of large read operations=0
+  		FILE: Number of write operations=0
+  		HDFS: Number of bytes read=258762335
+  		HDFS: Number of bytes written=7712
+  		HDFS: Number of read operations=29
+  		HDFS: Number of large read operations=0
+  		HDFS: Number of write operations=2
+  		HDFS: Number of bytes read erasure-coded=0
+  	Job Counters 
+  		Killed map tasks=1
+  		Launched map tasks=8
+  		Launched reduce tasks=1
+  		Rack-local map tasks=8
+  		Total time spent by all maps in occupied slots (ms)=130212
+  		Total time spent by all reduces in occupied slots (ms)=92908
+  		Total time spent by all map tasks (ms)=65106
+  		Total time spent by all reduce tasks (ms)=23227
+  		Total vcore-milliseconds taken by all map tasks=65106
+  		Total vcore-milliseconds taken by all reduce tasks=23227
+  		Total megabyte-milliseconds taken by all map tasks=33334272
+  		Total megabyte-milliseconds taken by all reduce tasks=23784448
+  	Map-Reduce Framework
+  		Map input records=21612437
+  		Map output records=21612437
+  		Map output bytes=191203318
+  		Map output materialized bytes=737317
+  		Input split bytes=1232
+  		Combine input records=0
+  		Combine output records=0
+  		Reduce input groups=315
+  		Reduce shuffle bytes=737317
+  		Reduce input records=21612437
+  		Reduce output records=315
+  		Spilled Records=43224874
+  		Shuffled Maps =8
+  		Failed Shuffles=0
+  		Merged Map outputs=8
+  		GC time elapsed (ms)=543
+  		CPU time spent (ms)=62700
+  		Physical memory (bytes) snapshot=3126669312
+  		Virtual memory (bytes) snapshot=20401295360
+  		Total committed heap usage (bytes)=2970615808
+  		Peak Map Physical memory (bytes)=355086336
+  		Peak Map Virtual memory (bytes)=2221871104
+  		Peak Reduce Physical memory (bytes)=567074816
+  		Peak Reduce Virtual memory (bytes)=2667622400
+  	Shuffle Errors
+  		BAD_ID=0
+  		CONNECTION=0
+  		IO_ERROR=0
+  		WRONG_LENGTH=0
+  		WRONG_MAP=0
+  		WRONG_REDUCE=0
+  	File Input Format Counters 
+  		Bytes Read=258761103
+  	File Output Format Counters 
+  		Bytes Written=7712
+  2026-10-19 21:42:05,118 INFO streaming.StreamJob: Output directory: /resultados/mapreduce/positivos_por_juego
+$ docker compose --profile yarn stop resourcemanager nodemanager
+   Container nodemanager Stopping 
+   Container resourcemanager Stopping 
+   Container resourcemanager Stopped 
+   Container nodemanager Stopped 
+[PIPELINE] Paso 11 OK en 115.0 s
+
+==============================================================================
+[PIPELINE] Paso 12 · rdd · mismo calculo con RDDs de Spark y comparacion de resultados
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/positivos_por_juego_rdd.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:42:10 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:42:10 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:42:10 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:42:10 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [RDD] Calculo y escritura en 13.3 s -> hdfs://namenode:9000/resultados/rdd/positivos_por_juego
+  [RDD] Juegos: 315 (RDD) / 315 (MapReduce)
+  [RDD] Resultados identicos al MapReduce: SI
+[PIPELINE] Paso 12 OK en 22.6 s
+
+==============================================================================
+[PIPELINE] Paso 13 · comparativa_mapreduce_rdd · tiempos MapReduce frente a RDD -> zona resultados
+==============================================================================
+{
+  "fecha_utc": "2026-10-19 21:42:29",
+  "calculo": "porcentaje de resenas positivas por juego (misma entrada para los dos)",
+  "mapreduce": {
+    "segundos_total": 80.1,
+    "segundos_job": 61.5,
+    "job": "job_1792446028198_0001"
+  },
+  "rdd": {
+    "segundos_total": 22.6,
+    "segundos_calculo": 13.3,
+    "identicos_al_mapreduce": "SI"
+  },
+  "rdd_veces_mas_rapido": {
+    "solo_calculo": 4.6,
+    "con_arranque": 3.5
+  },
+  "resultados_identicos": "SI",
+  "nota": "segundos_job: desde 'Running job' hasta 'completed successfully' en el registro de Hadoop; segundos_calculo: el que mide el script de RDD; segundos_total: el comando entero, con el arranque de la JVM y del cliente."
+}
+$ docker exec -i namenode hdfs dfs -put -f - /resultados/comparativa/mapreduce_vs_rdd.json
+  2026-10-19 21:42:32,730 INFO sasl.SaslDataTransferClient: SASL encryption trust check: localHostTrusted = false, remoteHostTrusted = false
+[PIPELINE] Comparativa guardada en /resultados/comparativa/mapreduce_vs_rdd.json
+[PIPELINE] Paso 13 OK en 3.4 s
+
+==============================================================================
+[PIPELINE] Paso 14 · ml · LogisticRegression con todas las resenas (AUC)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ml/modelo_recomendacion.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:42:37 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:42:37 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:42:37 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:42:37 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [ML] Catalogo: 315 juegos; generos en al menos el 10 % de ellos: Action (179), Indie (141), Adventure (131), Simulation (88), RPG (83), Strategy (76), Casual (34)
+  [ML] Fraccion de resenas usada: 1 (semilla 42); 23 variables
+  [ML] Idiomas con columna propia (el resto = otros): english, schinese, russian, brazilian, spanish, german, turkish, koreana, french, polish
+  26/10/19 21:43:04 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+  netlib-blas: JNI_OnLoad: dlopen(libblas.so.3) failed: libblas.so.3: cannot open shared object file: No such file or directory
+  [ML] Entrenado en 174.3 s (20 iteraciones)
+  [ML] Filas: entrenamiento 17288197, prueba 4324240
+  [ML] AUC ROC (prueba): 0.7451   (0,5 = azar; 1 = perfecto)
+  [ML] AUC PR  (prueba): 0.9469
+  [ML] Acierto con umbral 0,5: 87.41 %  frente a decir siempre si: 87.43 %
+  [ML] Resenas de prueba que el modelo predice como NO: 24111
+  [ML] Coeficientes (positivo = mas probable que recomiende), de mayor a menor peso:
+          log_longitud_texto                 -0.5018
+          genero_indie                       +0.4826
+          idioma_schinese                    -0.3921
+          genero_adventure                   -0.2520
+          genero_action                      -0.2414
+          acceso_anticipado                  -0.1585
+          genero_casual                      +0.1392
+          idioma_brazilian                   +0.1337
+          idioma_koreana                     -0.1006
+          idioma_spanish                     +0.0914
+          genero_rpg                         +0.0874
+          idioma_polish                      +0.0850
+          log_horas_al_resenar               +0.0597
+          genero_simulation                  -0.0567
+          genero_strategy                    +0.0325
+          compra_steam                       +0.0268
+          idioma_french                      +0.0252
+          idioma_turkish                     +0.0174
+          recibido_gratis                    +0.0154
+          sin_horas                          -0.0100
+          idioma_russian                     +0.0045
+          idioma_german                      +0.0020
+          idioma_english                     +0.0000
+          (intercepto)                       +3.5412
+  [ML] Tiempos: {'preparar_s': 22.7, 'entrenar_s': 174.3, 'evaluar_s': 84.2, 'total_s': 281.3}
+  [OK] Informe en /resultados/ml/regresion_logistica.json y modelo en /resultados/ml/modelo_regresion_logistica
+[PIPELINE] Paso 14 OK en 292.1 s
+
+==============================================================================
+[PIPELINE] Paso 15 · exportar_resultados · copia los resultados pequenos y la cuarentena a evidence/resultados
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/analisis/exportar_resultados.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:47:28 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:47:28 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:47:28 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:47:28 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [EXPORTAR] /resultados/q1                                -> q1_top_juegos_pct_positivo.csv (844 bytes, 11 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/q2                                -> q2_horas_al_resenar.csv (96 bytes, 3 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/q3                                -> q3_top5_por_idioma_2020.csv (5648 bytes, 142 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/mapreduce/positivos_por_juego     -> mapreduce_positivos_por_juego.tsv (7712 bytes, 315 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/rdd/positivos_por_juego           -> rdd_positivos_por_juego.tsv (7712 bytes, 315 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/calidad/etl_reviews.json          -> calidad_etl_reviews.json (1416 bytes, 52 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/comparativa/csv_vs_parquet.json   -> comparativa_csv_vs_parquet.json (1255 bytes, 62 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/comparativa/mapreduce_vs_rdd.json -> comparativa_mapreduce_vs_rdd.json (711 bytes, 20 lineas, 1 trozo(s))
+  [EXPORTAR] /resultados/ml/regresion_logistica.json       -> ml_regresion_logistica.json (2689 bytes, 75 lineas, 1 trozo(s))
+  [EXPORTAR] /quarantine/reviews                           -> cuarentena_reviews.json (9515 bytes, 7 lineas, 1 trozo(s))
+  [OK] Resultados copiados en evidence/resultados
+[PIPELINE] Paso 15 OK en 8.1 s
+
+[PIPELINE] Resumen:
+    5. verificar_curada                 45.8 s  OK
+    6. limpiar_catalogo                 19.9 s  OK
+    7. comparar_formatos               207.4 s  OK
+    8. consultas                        57.5 s  OK
+    9. optimizar_q1                     40.3 s  OK
+   10. exportar_entrada_mapreduce       26.2 s  OK
+   11. mapreduce                       115.0 s  OK
+   12. rdd                              22.6 s  OK
+   13. comparativa_mapreduce_rdd         3.4 s  OK
+   14. ml                              292.1 s  OK
+   15. exportar_resultados               8.1 s  OK
+[PIPELINE] Total: 14.0 min. Registro en evidence/ejecuciones/20261019_233334
+[OK] Pipeline completo

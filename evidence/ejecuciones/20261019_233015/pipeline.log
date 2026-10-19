@@ -1,0 +1,44 @@
+[PIPELINE] Pasos: 1.descargar_dataset, 2.subir_a_hdfs, 3.descargar_catalogo
+
+==============================================================================
+[PIPELINE] Paso 1 · descargar_dataset · CSV de Kaggle (se salta si ya esta en HDFS o en data/)
+==============================================================================
+[PIPELINE] El CSV ya esta en HDFS con el tamano exacto: no hace falta descargarlo.
+[PIPELINE] Paso 1 OK en 2.3 s
+
+==============================================================================
+[PIPELINE] Paso 2 · subir_a_hdfs · CSV -> zona raw de HDFS (se salta si ya esta)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/subir_a_hdfs.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:30:22 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:30:22 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:30:22 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:30:22 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [INGESTA] Destino : hdfs://namenode:9000/raw/steam_reviews.csv
+  [INGESTA] En HDFS : 8171787229 bytes
+  [OK] El CSV ya esta en HDFS con el tamano exacto (8171787229 bytes). No se sube nada.
+[PIPELINE] Paso 2 OK en 9.3 s
+
+==============================================================================
+[PIPELINE] Paso 3 · descargar_catalogo · catalogo de juegos de la API de Steam -> zona raw (se salta si ya esta)
+==============================================================================
+$ docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/ingesta/descargar_catalogo.py
+  WARNING: Using incubator modules: jdk.incubator.vector
+  Using Spark's default log4j profile: org/apache/spark/log4j2-defaults.properties
+  26/10/19 21:30:30 INFO SparkContext: Running Spark version 4.2.0
+  26/10/19 21:30:30 INFO SparkContext: OS info Linux, 6.18.54.1-microsoft-standard-WSL2, amd64
+  26/10/19 21:30:30 INFO SparkContext: Java version 21.0.12.1+1-1-26.04.4-Ubuntu
+  26/10/19 21:30:30 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+  Setting Spark log level to "WARN".
+  [CATALOGO] Ya existe hdfs://namenode:9000/raw/games/appdetails.jsonl. No se descarga nada (usa --forzar para repetir).
+[PIPELINE] Paso 3 OK en 10.3 s
+
+[PIPELINE] Resumen:
+    1. descargar_dataset                 2.3 s  OK
+    2. subir_a_hdfs                      9.3 s  OK
+    3. descargar_catalogo               10.3 s  OK
+[PIPELINE] Total: 0.4 min. Registro en evidence/ejecuciones/20261019_233015
+[OK] Pipeline completo

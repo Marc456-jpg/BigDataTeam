@@ -1,7 +1,16 @@
 # Steam Reviews 2021 · Arquitectura Big Data local (Entrega 1)
 
-Proyecto de la asignatura **Big Data & Cloud Computing** (Universidad de Navarra).
-Equipo: **Manu, Marc y Nora**.
+Proyecto de la asignatura **Big Data & Cloud Computing** (Tecnun, Universidad de Navarra, curso 26-27).
+
+## Equipo
+
+| Integrante | Usuario de GitHub |
+|---|---|
+| Manuel Fernández Pérez-Ricarte | ManuelFernandezPR |
+| Marc Pich-Aguilera Béjar | (lo añade Marc) |
+| Nora Cepas Zapico | (lo añade Nora) |
+
+**Documento de la entrega:** `docs/Memoria_Entrega1_SteamReviews.pdf` (arquitectura, evidencias de A a F, resultados, limitaciones y registro de decisiones).
 
 Una arquitectura Big Data completa que corre en un solo PC con Docker: **HDFS + YARN + Spark + Jupyter**, desde la ingesta del dataset hasta un modelo de Machine Learning, con un **único punto de entrada** (`python run_pipeline.py`).
 
@@ -45,6 +54,8 @@ steam-bigdata/
 ├── README.md                    ← este archivo
 ├── docker-compose.yml           ← el entorno completo; se levanta con un solo comando
 ├── run_pipeline.py              ← PUNTO DE ENTRADA ÚNICO del pipeline (15 pasos)
+├── docs/
+│   └── Memoria_Entrega1_SteamReviews.pdf   ← el documento de la entrega
 ├── config/
 │   └── pipeline.yaml            ← todas las rutas y parámetros (el código no lleva ninguno escrito)
 ├── docker/
@@ -86,6 +97,7 @@ El archivo `.gitattributes` obliga a guardar todos los archivos de texto con fin
 | **B** | Ingesta en zonas raw / curada / resultados | `src/ingesta/subir_a_hdfs.py`, sección 10 |
 | **B** | Parquet particionado | `src/procesamiento/etl_reviews.py` → `/curada/reviews`, particionado por `year` |
 | **B** | `hdfs fsck` con bloques y réplicas | `evidence/fase2/2.2_fsck_raw_steam_reviews.txt` |
+| **B** | Estructura de las zonas (`hdfs dfs -ls -R`) | `evidence/fase2/2.5_hdfs_ls_R_zonas.txt` |
 | **B** | Comparación CSV frente a Parquet | `src/procesamiento/comparar_formatos.py` → `evidence/resultados/comparativa_csv_vs_parquet.json` |
 | **C** | Job de MapReduce (Hadoop Streaming, Python) | `mapreduce/positivos_por_juego/` (paso 11 del pipeline) |
 | **C** | El mismo cálculo con RDDs y la comparación | `src/procesamiento/positivos_por_juego_rdd.py` (paso 12) y comparación automática (paso 13) |
@@ -281,7 +293,7 @@ Va fuera de los contenedores porque tiene que manejar a la vez Spark, Hadoop y e
 | 4 | `etl_reviews` | ETL: CSV → Parquet en `/curada/reviews` + cuarentena + informe de calidad | 580,0 s (9,7 min) |
 | 5 | `verificar_curada` | Vuelve a leer lo escrito y comprueba 4 reglas (devuelve 0 o 1) | 36,7 s |
 | 6 | `limpiar_catalogo` | Catálogo limpio → `/curada/games` | 17,6 s |
-| 7 | `comparar_formatos` | CSV frente a Parquet: tamaño y tiempo de lectura | 70,3 s |
+| 7 | `comparar_formatos` | CSV frente a Parquet: tamaño y tiempo de lectura (mediana de 3 medidas) | 70,3 s (con 3 medidas: 151,2 s²) |
 | 8 | `consultas` | Q1-Q3 → `/resultados/q1…q3` | 64,2 s |
 | 9 | `optimizar_q1` | `explain()` + 3 versiones de Q1 medidas; planes en `evidence/fase5/` | 37,3 s |
 | 10 | `exportar_entrada_mapreduce` | Texto `app_id<TAB>recommended` para Hadoop Streaming | 23,2 s |
@@ -293,6 +305,8 @@ Va fuera de los contenedores porque tiene que manejar a la vez Spark, Hadoop y e
 | | **Total** | | **≈ 20,4 min (19,9 min de los pasos 4-15 + 27 s de los pasos 1-3)** |
 
 ¹ Ejecución final del 19 oct 2026, con los datos ya en HDFS. Los pasos 4-15 son de `evidence/ejecuciones/20261019_183937/` (`--desde 4`). Los pasos 1-3, que solo comprueban y se saltan, son de la ejecución anterior del mismo día (`20261019_163933/`). Desde un PC vacío hay que sumar la descarga (depende de la conexión), la subida a HDFS (≈ 15 min) y el catálogo (≈ 10,6 min).
+
+² Desde el 19 oct por la noche el paso 7 mide cada consulta 3 veces y da la mediana (`evidence/ejecuciones/20261020_011845/`). Tarda ≈ 1,3 min más, así que el total queda en ≈ 21,8 min.
 
 **Opciones:**
 
@@ -321,6 +335,8 @@ python run_pipeline.py --solo 11,12,13   # solo esos pasos (la comparativa neces
 - El resultado del RDD tiene **las mismas 315 líneas en otro orden**: `reduceByKey` no ordena la salida. Comprobado ordenando las dos: coinciden con el MapReduce.
 - En los planes V2 y V3 solo cambia la estimación de filas de la agregación parcial (`Statistics(… rowCount=…)`), porque el Parquet nuevo tiene otro tamaño y se lee en otros trozos.
 - Los informes JSON cambian en los tiempos medidos y, el del ETL, también en los campos nuevos de la cuarentena.
+
+**Comprobado otra vez la noche del 19 al 20 oct**, con el código final (todo el entorno en `config/pipeline.yaml`): pasos 5-15 (`20261019_233334/`) y paso 7 (`20261020_011845/`). Según `git diff --stat`, solo cambiaron los 3 JSON que guardan tiempos (`comparativa_*` y `ml_regresion_logistica.json`); Q1-Q3, el MapReduce, el RDD, el informe de calidad y los 3 planes de `evidence/fase5/` salieron idénticos byte a byte.
 
 **Mientras corre:**
 
@@ -377,20 +393,22 @@ docker exec namenode hdfs dfs -cat /quarantine/reviews/part-*
 
 ## 9. Configuración (`config/pipeline.yaml`)
 
-Ningún script lleva rutas ni parámetros escritos dentro: todo sale de este archivo.
+Ningún script lleva rutas ni parámetros escritos dentro: todo sale de este archivo, también los del entorno Docker (sección `entorno`). En `run_pipeline.py` solo quedan los dos datos imprescindibles para leer la propia configuración: dónde está el archivo y qué contenedor traduce el YAML (`jupyter`, que tiene la librería; así el PC no necesita instalar nada).
 
 | Sección | Qué guarda |
 |---|---|
 | `dataset` | Id de Kaggle, nombre del CSV y tamaño exacto (sirve para comprobar descargas y subidas) |
 | `local` | Carpetas `data/` y `secrets/` |
+| `entorno` | Cómo se lanzan los pasos: contenedores (`jupyter`, `namenode`), usuario, carpeta del proyecto dentro de jupyter, `spark-submit`, nivel de log, perfil y servicios de YARN, JAR de Hadoop Streaming y carpeta temporal |
 | `hdfs` | NameNode (`hdfs://namenode:9000`) y zonas: `/raw`, `/curada`, `/resultados`, `/quarantine` |
 | `spark` | Master, memorias (driver 1g, **executor 1536m**), zona horaria **UTC**, replicación 2, 32 particiones de shuffle |
 | `etl` | Rutas, criterio de partición (`auto`, umbral de 128 MB), grupos de filas de Parquet de 16 MB, rango de fechas válido (2003-09-12 … 2021-12-31), informe de calidad y cuarentena |
-| `mapreduce` | Entrada (8 archivos de texto) y salidas del MapReduce y del RDD |
+| `mapreduce` | Entrada (8 archivos de texto), salidas del MapReduce y del RDD, carpeta y nombres del mapper y del reducer, intérprete |
 | `catalogo` | URL de la API de Steam, idioma y país, pausa y reintentos |
-| `consultas` | Q1: mínimo de 1.000 reseñas y top 10; Q3: año 2020 y top 5 |
+| `consultas` | Q1: mínimo de 1.000 reseñas y top 10; Q3: año 2020 y top 5; rutas de las respuestas; repeticiones y carpeta de los planes de la optimización |
+| `comparar_formatos` | Repeticiones de cada medida CSV/Parquet (3) y ruta del informe |
 | `ml` | Fracción (1.0 = todo), 20 % de prueba, semilla 42, 10 idiomas, géneros ≥ 10 % de los juegos, máximo de 50 iteraciones, trozos de 32 MB |
-| `exportar` | Carpeta local de resultados (`evidence/resultados`) |
+| `exportar` | Carpeta local de resultados (`evidence/resultados`), tamaño máximo por archivo y la lista de qué se copia (incluida la cuarentena) |
 | `pipeline` | Espera máxima a YARN (240 s) y ruta de la comparativa MapReduce/RDD |
 
 ---
@@ -415,7 +433,7 @@ Ningún script lleva rutas ni parámetros escritos dentro: todo sale de este arc
 └── quarantine/reviews/           filas inválidas del ETL (JSON, con su motivo)
 ```
 
-**Por qué se particiona por `year` y no por año + mes.** El ETL mide antes de decidir. La partición mensual típica (mediana) pesaría **24,8 MB**, lejos de los 128 MB de un bloque, y habría creado 123 archivos pequeños. La anual pesa **192,8 MB**: «cientos de MB, no KB», como pide el enunciado.
+**Por qué se particiona por `year` y no por año + mes.** El ETL mide antes de decidir. La partición mensual típica (mediana) pesaría **24,7 MB**, lejos de los 128 MB de un bloque, y habría creado 123 archivos pequeños. La anual pesa **192,5 MB**: «cientos de MB, no KB», como pide el enunciado.
 
 ---
 
@@ -433,7 +451,7 @@ Todos los resultados están en `evidence/resultados/`, copiados de HDFS por el p
   = 21.612.437 filas en /curada/reviews
 ```
 
-- **Filas en cuarentena:** 7 (las 7 corruptas).
+- **Filas en cuarentena:** 7 (las 7 corruptas), exportadas con su motivo a `evidence/resultados/cuarentena_reviews.json`.
 - **Executors perdidos en el ETL:** 0, con executors de 1,5 GB. Con 1 GB, el mismo día, se perdieron 6 y el ETL abortó (sección 15).
 - **Avisos que se cuentan pero no se borran:**
   - 33.742 reseñas sin texto;
@@ -453,17 +471,22 @@ Todos los resultados están en `evidence/resultados/`, copiados de HDFS por el p
 | | CSV (`/raw`) | Parquet (`/curada`) | Parquet, solo 2020 |
 |---|---|---|---|
 | Tamaño (1 copia) | 7.793 MB | 4.185 MB (53,7 %) | — |
-| ¿Cuántas recomiendan? | 54,7 s | 3,7 s | 0,8 s (poda de particiones) |
+| ¿Cuántas recomiendan? (mediana de 3; rango) | 44,8 s (42,8-46,5) | 0,9 s (0,8-2,1) | 0,4 s (0,4-0,5; poda de particiones) |
+
+- Parquet ocupa el 53,7 % y la consulta es **≈ 50 veces** más rápida (44,8 / 0,9 = 49,8).
+- **Método:** cada consulta se mide 3 veces, en ronda (CSV, Parquet, Parquet 2020, CSV…), en el mismo clúster y sin otros programas abiertos en el PC; se da la mediana (`evidence/resultados/comparativa_csv_vs_parquet.json`, con las 9 medidas; ejecución `20261020_011845/`).
+- La primera lectura de Parquet (2,1 s) es la más lenta, probablemente por el arranque en frío. Con una sola medida, una ejecución anterior dio «15 veces» (3,7 s frente a 54,7 s): por eso ahora se repite.
+- La carga del PC también cuenta: con un vídeo reproduciéndose, el CSV tardó un 28 % más (62,5 s de mediana, `20261019_233334/`).
 
 ### 11.3 MapReduce frente a RDD (porcentaje de reseñas positivas por juego)
 
 | | Hadoop Streaming en YARN | Spark RDD (`reduceByKey`) |
 |---|---|---|
-| Cálculo | 56,4 s | 11,9 s |
-| Comando entero (con arranque) | 70,6 s | 20,5 s |
+| Cálculo | 61,5 s | 13,3 s |
+| Comando entero (con arranque) | 80,1 s | 22,6 s |
 | Resultado | 315 juegos | **Idéntico** (comprobado automáticamente) |
 
-Spark es ≈ 4,7 veces más rápido en el cálculo (3,4 contando el arranque). El motivo principal:
+Spark es ≈ 4,6 veces más rápido en el cálculo (3,5 contando el arranque; ejecución `20261019_233334`). **Nota honesta:** esa ejecución, de la que salen también los tiempos de la sección 11.5 y del ML, se hizo con un vídeo abierto en el PC. Con el PC libre (19 oct, 18:39, `20261019_183937/`) fueron 56,4 s frente a 11,9 s (4,7 veces): la proporción apenas cambia. El motivo principal:
 
 - `reduceByKey` suma dentro de cada trozo antes de enviar nada (un *combiner*), así que por la red viajan como mucho 2.520 totales parciales;
 - nuestro MapReduce, sin combiner, envía 21,6 millones de pares, y además arranca un contenedor de YARN por tarea.
@@ -485,13 +508,16 @@ Spark es ≈ 4,7 veces más rápido en el cálculo (3,4 contando el arranque). E
 
 | Versión | Join | Shuffles | Tiempo |
 |---|---|---|---|
-| V1 · join primero | SortMergeJoin | 2 | 4,0 s |
-| V2 · join primero, catálogo en broadcast | BroadcastHashJoin | 1 | 1,6 s |
-| V3 · agregar antes + broadcast | BroadcastHashJoin | 1 | 0,9 s (**4,6 veces más rápida**) |
+| V1 · join primero | SortMergeJoin | 2 | 4,6 s |
+| V2 · join primero, catálogo en broadcast | BroadcastHashJoin | 1 | 2,0 s |
+| V3 · agregar antes + broadcast | BroadcastHashJoin | 1 | 1,1 s (**4,3 veces más rápida**) |
+
+Cada versión se mide 2 veces y se da la mejor: la primera medida suele ser más lenta (V1: 7,9 s y 4,6 s; ejecución `20261019_233334`, con un vídeo abierto en el PC). Con el PC libre (19 oct, 18:39) fueron 4,0 → 1,6 → 0,9 s (4,6 veces).
 
 - Las 3 dan el mismo top 10.
 - En V3 solo cruzan la red ≈ 7.160 totales parciales (`rowCount=7.16E+3` en el plan; un total por juego y por trozo leído), en vez de 21,6 M de filas.
 - Los planes (`explain` formatted) están en `evidence/fase5/5.2_plan_*.txt` y las capturas de la Spark UI en `evidence/fase5/5.2_0*`.
+- La pestaña **Stages** (`5.2_07_spark_ui_stages_a/b.png`) mide lo que cruza la red: V1 escribe **20,8 MiB** de shuffle (34 tareas) que lee la etapa del join (5 tareas); V2, **379,8 KiB**; V3, **188,9 KiB** (56 y 113 veces menos). Cada lectura del Parquet son solo 8,4 MiB, porque Spark lee únicamente las columnas que usa. Las 9 etapas «skipped» son shuffles ya calculados que Spark reutiliza al repetir la medida.
 
 ### 11.6 Machine Learning (línea base, apartado E)
 
@@ -572,7 +598,7 @@ Evidencias en `evidence/fase7/`: `7.1_00`-`7.1_16` para el escenario 1 y `7.2_00
 | Carpeta | Qué contiene |
 |---|---|
 | `evidence/fase1/` | Entorno: apagado limpio, YARN, Jupyter, prueba de humo, WordCount, Streaming con UTF-8, arranque desde cero con un solo comando |
-| `evidence/fase2/` | Ingesta: espacio en disco, subida a HDFS, `fsck` del CSV (61 bloques × 2 copias), catálogo de Steam |
+| `evidence/fase2/` | Ingesta: espacio en disco, subida a HDFS, `fsck` del CSV (61 bloques × 2 copias), estructura de las zonas (`hdfs dfs -ls -R`), catálogo de Steam |
 | `evidence/fase3/` | ETL (los 3 intentos, con sus fallos y arreglos), verificación, CSV frente a Parquet, catálogo limpio |
 | `evidence/fase4/` | MapReduce y RDD con resultados idénticos |
 | `evidence/fase5/` | Q1-Q3, optimización de Q1: planes de ejecución y capturas de la Spark UI |
@@ -698,7 +724,7 @@ El documento de la entrega justifica cada una con sus medidas.
 | CSV leído con `multiLine` y `escape='"'` y esquema explícito de 23 columnas | Hay reseñas con saltos de línea y comillas dentro; adivinar tipos obligaría a leer 8 GB más |
 | ETL en dos pasadas (CSV → Parquet de paso → curada) | El CSV multilínea solo se puede leer con 1 tarea: se paga una vez y lo demás va en paralelo |
 | Fechas en UTC | El año (la partición) no depende del PC |
-| Partición por `year` elegida midiendo | Mediana por mes de 24,8 MB (archivos pequeños) frente a 192,8 MB por año |
+| Partición por `year` elegida midiendo | Mediana por mes de 24,7 MB (archivos pequeños) frente a 192,5 MB por año (`evidence/resultados/calidad_etl_reviews.json`) |
 | Duplicados: se queda la versión más reciente, con la lista de ids repetidos en broadcast | La versión anterior ordenaba las 21,7 M de filas con su texto y mató 4 executors |
 | Zona `/quarantine` para las filas inválidas | Se pueden revisar, no solo contar (aprobada por el profesor) |
 | Entrada del MapReduce exportada desde la zona curada | Hadoop Streaming lee línea a línea; MapReduce y RDD leen lo mismo, así que la comparación es justa |
@@ -719,7 +745,7 @@ El documento de la entrega justifica cada una con sus medidas.
 - **El catálogo es de hoy.** Nombres, géneros y precios son los actuales de la tienda (por ejemplo, «Grand Theft Auto V Legacy»), no los de cada reseña. Por eso el ML no usa el precio.
 - **Memoria y disco justos.** Con ≈ 8 GB para Docker, un executor de 1,5 GB ejecuta 4 tareas a la vez. Con 1 GB, los reintentos por falta de memoria triplicaban el tiempo del ETL. Además, el disco virtual de Docker crece ≈ 25-38 GB con cada ETL y hay que compactarlo a mano.
 - **Detección lenta de DataNodes caídos.** ≈ 10-15 min (el valor por defecto de Hadoop), no los ≈ 14-20 s previstos (sección 11.7). Mientras tanto, los programas leen de la otra copia, pero más despacio.
-- **Una medición de cada tiempo.** Los tiempos son de una ejecución, no la mediana de varias.
+- **Pocas repeticiones.** CSV frente a Parquet se mide 3 veces (mediana) y cada versión de Q1, 2 veces (la mejor). El resto (MapReduce, RDD, ML y los pasos del pipeline) son de una ejecución; entre dos ejecuciones variaron ≈ 10 % (MapReduce: 56,4 s y 61,5 s, esta última con un vídeo abierto en el PC), aunque las proporciones entre versiones apenas cambian. La carga del PC influye: con el vídeo, el CSV del paso 7 tardó un 28 % más.
 - **MapReduce sin combiner.** Añadir `-combiner` acercaría su shuffle al de Spark; no se ha probado.
 - **Python 3.5 en el NodeManager.** La imagen de Hadoop usa Debian 9, así que el mapper y el reducer no usan f-strings.
 - **Puertos.** Jupyter y la Spark UI solo escuchan en `127.0.0.1`, pero el NameNode (9870, 9000) y las webs de Spark (8080, 8081) escuchan en todas las interfaces: se ven desde la red local si el firewall lo permite. No uses el clúster en redes públicas.

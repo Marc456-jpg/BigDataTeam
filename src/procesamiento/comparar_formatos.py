@@ -10,16 +10,21 @@ Parquet. Este script lo MIDE en nuestro clúster en vez de suponerlo:
   1. TAMAÑO: bytes de cada formato en HDFS (una copia y con sus 2 réplicas).
   2. TIEMPO, MISMA CONSULTA EN LOS DOS FORMATOS: «cuántas reseñas recomiendan
      el juego y cuántas no» (groupBy recommended + count).
-       - En el CSV, Spark tiene que leer el archivo ENTERO, fila a fila, con
-         una sola tarea (multiLine): ≈ 10 min.
+       - En el CSV, Spark tiene que leer el archivo ENTERO, fila a fila
+         (multiLine), y analizar el texto de cada columna: ≈ 1 min.
        - En Parquet, Spark lee SOLO la columna «recommended» (cada columna se
          guarda por separado) y en paralelo: segundos.
   3. TIEMPO CON PODA DE PARTICIONES (solo Parquet): la misma consulta, pero solo
      para 2020. Spark ni siquiera abre las carpetas de los otros años.
 
-Solo LEE los datos. El único archivo que escribe es el informe JSON de
-resultados en /resultados/comparativa/csv_vs_parquet.json (se reemplaza en
-cada ejecución, así que se puede repetir sin problema).
+Método: las tres consultas se repiten N veces (comparar_formatos.repeticiones de
+la configuración; 3 por defecto), en ronda (CSV, Parquet, Parquet 2020, CSV...),
+y se da la MEDIANA de cada una, con el mínimo y el máximo. Así una medida suelta
+(por ejemplo, la primera, con los archivos aún sin leer) no decide el resultado.
+
+Solo LEE los datos. El único archivo que escribe es el informe JSON
+(comparar_formatos.informe de la configuración; se reemplaza en cada ejecución,
+así que se puede repetir sin problema).
 
 Uso (desde PowerShell, en C:\\steam-bigdata):
     docker exec -u jovyan jupyter /usr/local/spark/bin/spark-submit --driver-memory 1g --conf spark.log.level=WARN /home/jovyan/work/src/procesamiento/comparar_formatos.py
@@ -29,6 +34,7 @@ Los mensajes van sin tildes a propósito (PowerShell las muestra mal).
 
 import argparse
 import json
+import statistics
 import sys
 import time
 from pathlib import Path
@@ -68,7 +74,8 @@ def main():
     cfg_spark, cfg_etl = cfg["spark"], cfg["etl"]
     ruta_csv = ns + cfg_etl["csv_raw"]
     ruta_parquet = ns + cfg_etl["salida"]
-    ruta_informe = ns + cfg["hdfs"]["resultados"] + "/comparativa/csv_vs_parquet.json"
+    ruta_informe = ns + cfg["comparar_formatos"]["informe"]
+    repeticiones = int(cfg["comparar_formatos"]["repeticiones"])
 
     spark = (
         SparkSession.builder
@@ -115,12 +122,24 @@ def main():
             return lambda: {str(r["recommended"]): r["count"]
                             for r in df.groupBy("recommended").count().collect()}
 
-        t_csv, res_csv = medir("CSV: resenas por recommended (lee el archivo entero, ~10 min)",
-                               por_recomendacion(csv))
-        t_pq, res_pq = medir("Parquet: misma consulta (solo la columna recommended)",
-                             por_recomendacion(parquet))
-        t_pq_2020, res_pq_2020 = medir("Parquet: misma consulta solo 2020 (poda de particiones)",
-                                       por_recomendacion(parquet.filter(F.col("year") == 2020)))
+        consultas = [
+            ("csv", "CSV: resenas por recommended (lee el archivo entero)", por_recomendacion(csv)),
+            ("parquet", "Parquet: misma consulta (solo la columna recommended)",
+             por_recomendacion(parquet)),
+            ("parquet_solo_2020", "Parquet: misma consulta solo 2020 (poda de particiones)",
+             por_recomendacion(parquet.filter(F.col("year") == 2020))),
+        ]
+        tiempos = {clave: [] for clave, _, _ in consultas}
+        resultados = {}
+        for vuelta in range(1, repeticiones + 1):           # en ronda: CSV, Parquet, 2020, CSV...
+            for clave, texto, consulta in consultas:
+                segundos, filas = medir("{} (medida {} de {})".format(texto, vuelta, repeticiones),
+                                        consulta)
+                tiempos[clave].append(round(segundos, 1))
+                resultados[clave] = filas
+        mediana = {clave: round(statistics.median(t), 1) for clave, t in tiempos.items()}
+        t_csv, t_pq, t_pq_2020 = mediana["csv"], mediana["parquet"], mediana["parquet_solo_2020"]
+        res_csv, res_pq, res_pq_2020 = resultados["csv"], resultados["parquet"], resultados["parquet_solo_2020"]
 
         # --- 3) Informe ------------------------------------------------------------
         informe = {
@@ -128,8 +147,11 @@ def main():
                           "parquet": pq_mb, "parquet_con_replicas": pq_mb_replicas,
                           "parquet_entre_csv": round(pq_mb / csv_mb, 3)},
             "consulta": "groupBy(recommended).count()",
-            "segundos": {"csv": round(t_csv, 1), "parquet": round(t_pq, 1),
-                         "parquet_solo_2020": round(t_pq_2020, 1)},
+            "metodo": ("cada consulta se mide {} veces, en ronda (CSV, Parquet, Parquet 2020, CSV...), "
+                       "en el mismo cluster y sin otros programas; 'segundos' es la mediana").format(repeticiones),
+            "segundos": {"csv": t_csv, "parquet": t_pq, "parquet_solo_2020": t_pq_2020},
+            "segundos_cada_medida": tiempos,
+            "segundos_min_max": {clave: [min(t), max(t)] for clave, t in tiempos.items()},
             "veces_mas_rapido_parquet": round(t_csv / t_pq, 1),
             "resultado": {"csv": res_csv, "parquet": res_pq, "parquet_solo_2020": res_pq_2020},
             "nota": ("El CSV incluye las filas corruptas y las duplicadas que el ETL quito; "

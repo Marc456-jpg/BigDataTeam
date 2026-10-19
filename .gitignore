@@ -22,3 +22,6 @@ derby.log
 Thumbs.db
 desktop.ini
 .vscode/
+
+# Carpeta local donde se prepara el .zip de la entrega (no se sube a GitHub)
+entrega/

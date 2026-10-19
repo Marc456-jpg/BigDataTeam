@@ -5,12 +5,15 @@ exportar_resultados.py · Copia los resultados pequeños de HDFS (/resultados) a
 la carpeta evidence/resultados del repositorio, para entregarlos en GitHub.
 
 Por qué existe: las respuestas a las preguntas Q1-Q3, el MapReduce, el informe
-de calidad, las comparativas (CSV/Parquet y MapReduce/RDD) y las métricas del ML se guardan en HDFS,
+de calidad, las comparativas (CSV/Parquet y MapReduce/RDD), las métricas del ML
+y las filas en cuarentena (con su motivo) se guardan en HDFS,
 que vive dentro de Docker y no se sube a GitHub. El enunciado pide una carpeta
 de evidencias con métricas y resultados. Este script deja una copia legible
 (CSV, TSV o JSON) en el repositorio.
 
-Solo copia resultados pequeños (KB), nunca datos de reseñas. Reemplaza los
+Qué se copia y adónde lo dice config/pipeline.yaml (sección «exportar»).
+Solo copia resultados pequeños (KB), nunca datos de reseñas: un archivo que
+pase del tamaño máximo de la configuración no se copia (avisa). Reemplaza los
 archivos cada vez (se puede repetir sin problema). Si un resultado todavía no
 existe en HDFS, avisa y sigue con los demás.
 
@@ -33,20 +36,9 @@ CONFIG_POR_DEFECTO = RAIZ / "config" / "pipeline.yaml"
 
 
 def lista_de_resultados(cfg):
-    """(ruta en HDFS, nombre del archivo local, ¿es CSV con cabecera?)"""
-    res = cfg["hdfs"]["resultados"]
-    return [
-        (res + "/q1", "q1_top_juegos_pct_positivo.csv", True),
-        (res + "/q2", "q2_horas_al_resenar.csv", True),
-        (res + "/q3", "q3_top5_por_idioma_2020.csv", True),
-        (cfg["mapreduce"]["salida"], "mapreduce_positivos_por_juego.tsv", False),
-        (cfg["mapreduce"]["salida_rdd"], "rdd_positivos_por_juego.tsv", False),
-        (cfg["etl"]["informe_calidad"], "calidad_etl_reviews.json", False),
-        (res + "/comparativa/csv_vs_parquet.json", "comparativa_csv_vs_parquet.json", False),
-        # La escribe run_pipeline.py (paso 13): tiempos de MapReduce frente a RDD
-        (cfg["pipeline"]["comparativa_mr_rdd"], "comparativa_mapreduce_vs_rdd.json", False),
-        (cfg["ml"]["salida_informe"], "ml_regresion_logistica.json", False),
-    ]
+    """(ruta en HDFS, nombre del archivo local, ¿es CSV con cabecera?), tal como
+    los enumera config/pipeline.yaml (exportar.archivos)."""
+    return [(a["hdfs"], a["local"], bool(a["csv"])) for a in cfg["exportar"]["archivos"]]
 
 
 def main():
@@ -59,6 +51,7 @@ def main():
     ns = cfg["hdfs"]["namenode"].rstrip("/")
     destino = RAIZ / cfg["exportar"]["carpeta_local"]
     destino.mkdir(parents=True, exist_ok=True)
+    max_bytes = int(cfg["exportar"]["max_kb_por_archivo"]) * 1024
 
     # Spark en modo local, solo para usar la API de ficheros de Hadoop.
     spark = SparkSession.builder.appName("exportar_resultados").master("local[1]").getOrCreate()
@@ -98,6 +91,11 @@ def main():
             else:
                 trozos = [ruta]
                 contenido = leer(p)
+            if len(contenido) > max_bytes:
+                print("[AVISO] {} ocupa {} bytes (maximo {}): no se copia".format(
+                    ruta, len(contenido), max_bytes))
+                faltan += 1
+                continue
             (destino / nombre).write_bytes(contenido)
             lineas = contenido.count(b"\n")
             print("[EXPORTAR] {:<45} -> {} ({} bytes, {} lineas, {} trozo(s))".format(

@@ -1,19 +1,19 @@
 {
-  "fecha_utc": "2026-10-19 16:55:33",
+  "fecha_utc": "2026-10-19 21:42:29",
   "calculo": "porcentaje de resenas positivas por juego (misma entrada para los dos)",
   "mapreduce": {
-    "segundos_total": 70.6,
-    "segundos_job": 56.4,
-    "job": "job_1792428822397_0001"
+    "segundos_total": 80.1,
+    "segundos_job": 61.5,
+    "job": "job_1792446028198_0001"
   },
   "rdd": {
-    "segundos_total": 20.5,
-    "segundos_calculo": 11.9,
+    "segundos_total": 22.6,
+    "segundos_calculo": 13.3,
     "identicos_al_mapreduce": "SI"
   },
   "rdd_veces_mas_rapido": {
-    "solo_calculo": 4.7,
-    "con_arranque": 3.4
+    "solo_calculo": 4.6,
+    "con_arranque": 3.5
   },
   "resultados_identicos": "SI",
   "nota": "segundos_job: desde 'Running job' hasta 'completed successfully' en el registro de Hadoop; segundos_calculo: el que mide el script de RDD; segundos_total: el comando entero, con el arranque de la JVM y del cliente."
