@@ -110,6 +110,13 @@ def main():
         .config("spark.sql.session.timeZone", cfg_spark["zona_horaria"])
         .config("spark.hadoop.dfs.replication", str(cfg_spark["replicacion_hdfs"]))
         .config("spark.sql.shuffle.partitions", str(cfg_spark["particiones_shuffle"]))
+        # Trozos más pequeños al leer el Parquet (tarea 6.6): con los 128 MB
+        # por defecto salían ≈ 35 trozos de ≈ 620.000 reseñas, y al guardar los
+        # datos de entrenamiento el executor de 1 GB se quedó sin memoria 2 veces
+        # (19 oct, sección 24.6). Con trozos de 32 MB, cada tarea maneja ≈ 4
+        # veces menos datos a la vez.
+        .config("spark.sql.files.maxPartitionBytes",
+                str(int(float(cfg_ml["mb_por_particion"]) * 1024 * 1024)))
         .getOrCreate()
     )
     try:

@@ -24,9 +24,29 @@ Cómo funciona (dos pasadas):
   temporales de la pasada 1 (varios GB) y no se llena el disco.
 
   PASADA 2 (rápida, ≈ 3-6 min): lee el staging (Parquet, en paralelo), calcula
-     el informe de calidad, se queda solo con las filas válidas, quita
-     duplicados y escribe el resultado final en /curada/reviews, particionado.
-     Al final borra el staging.
+     el informe de calidad, guarda las filas inválidas en la zona de
+     CUARENTENA (/quarantine/reviews, decisión 53), se queda solo con las
+     válidas, quita duplicados y escribe el resultado final en /curada/reviews,
+     particionado. Al final borra el staging.
+
+  CUARENTENA (decisión 53, aprobada por el profesor el 19 oct): las filas que
+     no pasan las reglas de calidad (corruptas, sin columna clave o con fecha
+     fuera de rango) no se tiran sin más: se guardan en JSON, con una columna
+     «motivo», para poder revisarlas. Forma parte de la calidad de datos del
+     apartado E. Los duplicados no van a cuarentena: no son filas inválidas,
+     solo versiones repetidas de una reseña válida (se cuentan en el informe).
+
+  QUITAR DUPLICADOS SIN MOVER TODAS LAS FILAS (19 oct): el 18 oct, la versión
+     anterior ordenaba las 21,7 M de filas (con su texto) por review_id para
+     quedarse con una de cada reseña repetida, y el executor de 1 GB se quedó
+     sin memoria 4 veces (Spark se recuperó, pero era frágil). Ahora solo se
+     mueve lo imprescindible:
+       1) se agrupa SOLO la columna review_id para saber qué reseñas se
+          repiten (≈ 135.000 de 21,7 M);
+       2) esa lista pequeña se copia entera a cada executor (broadcast);
+       3) las filas que no se repiten (casi todas) pasan sin moverse;
+       4) solo las repetidas (≈ 270.000) se ordenan para quedarse con la
+          versión más reciente.
 
 Re-ejecutar el script es seguro (idempotente): todas las escrituras usan modo
 «overwrite», así que nunca se duplican datos.
@@ -309,23 +329,48 @@ def pasada_2_curada(spark, cfg_etl, ns, eleccion):
         F.date_format(F.max("created_at"), "yyyy-MM-dd HH:mm:ss").alias("fecha_max"),
     ).collect()[0].asDict()
 
-    # Duplicados: misma review_id más de una vez (entre las filas válidas).
-    # Contar los distintos solo mueve la columna review_id: es barato.
+    # --- Cuarentena: las filas inválidas se guardan, con su motivo ---------
+    # repartition(1) va DESPUÉS del filtro: la lectura y el filtro siguen en
+    # paralelo y solo las pocas filas inválidas se juntan en un archivo.
+    # La columna con el texto original de las filas corruptas se renombra:
+    # «_corrupt_record» es un nombre reservado por los lectores de Spark, y al
+    # volver a leer el JSON aparecería vacía.
+    invalidas = (
+        df.filter(~valida)
+        .withColumn("motivo",
+                    F.when(corrupta, F.lit("corrupta"))
+                    .when(falta_clave, F.lit("sin_columna_clave"))
+                    .otherwise(F.lit("fecha_fuera_de_rango")))
+        .withColumnRenamed("_corrupt_record", "registro_original"))
+    (
+        invalidas.repartition(1)
+        .write.mode("overwrite")                   # idempotente
+        .json(ns + cfg_etl["cuarentena"])
+    )
+    fila["filas_en_cuarentena"] = fila["filas_leidas"] - fila["filas_validas"]
+
+    # --- Duplicados: misma review_id más de una vez (entre las válidas) ----
+    # Agrupar solo la columna review_id es barato (8 bytes por fila).
     validas = df.filter(valida).drop("_corrupt_record")
-    distintas = validas.select("review_id").distinct().count()
+    columnas = validas.columns
+    grupos = validas.groupBy("review_id").count()
+    distintas = grupos.count()
     fila["review_id_duplicadas"] = fila["filas_validas"] - distintas
     fila["filas_finales"] = distintas
 
     # --- Datos limpios: válidas y sin duplicados ----------------------------
-    # Solo si HAY duplicados se hace el trabajo caro de quitarlos (mover todas
-    # las filas por review_id). De cada reseña repetida, se queda la versión
-    # más reciente (la de updated_at mayor).
+    # De cada reseña repetida se queda la versión más reciente (updated_at
+    # mayor). Solo se ordenan las filas repetidas; el resto no se mueve.
     if fila["review_id_duplicadas"] > 0:
+        repetidas_ids = F.broadcast(grupos.filter(F.col("count") > 1).select("review_id"))
+        unicas = validas.join(repetidas_ids, "review_id", "left_anti")
         ventana = Window.partitionBy("review_id").orderBy(F.col("updated_at").desc())
-        limpias = (
-            validas.withColumn("_n", F.row_number().over(ventana))
+        repetidas = (
+            validas.join(repetidas_ids, "review_id", "left_semi")
+            .withColumn("_n", F.row_number().over(ventana))
             .filter(F.col("_n") == 1).drop("_n")
         )
+        limpias = unicas.select(*columnas).unionByName(repetidas.select(*columnas))
     else:
         limpias = validas
 
@@ -407,6 +452,7 @@ def main():
         informe = {
             "entrada": cfg_etl["csv_raw"],
             "salida": cfg_etl["salida"],
+            "cuarentena": cfg_etl["cuarentena"],
             "calidad": calidad,
             "particion": medicion,
             "tamano_salida_mb": None,

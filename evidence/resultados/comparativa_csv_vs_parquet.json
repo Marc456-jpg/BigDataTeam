@@ -8,11 +8,11 @@
   },
   "consulta": "groupBy(recommended).count()",
   "segundos": {
-    "csv": 43.5,
-    "parquet": 1.9,
-    "parquet_solo_2020": 0.6
+    "csv": 44.3,
+    "parquet": 2.1,
+    "parquet_solo_2020": 0.5
   },
-  "veces_mas_rapido_parquet": 22.4,
+  "veces_mas_rapido_parquet": 20.9,
   "resultado": {
     "csv": {
       "True": 19022610,

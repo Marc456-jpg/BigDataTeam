@@ -5,15 +5,15 @@
   "semilla": 42,
   "proporcion_test": 0.2,
   "filas": {
-    "entrenamiento": 17289887,
-    "prueba": 4322550
+    "entrenamiento": 17287975,
+    "prueba": 4324462
   },
   "metricas_prueba": {
-    "auc_roc": 0.7461,
-    "auc_pr": 0.9472,
-    "acierto_umbral_0_5": 0.8742,
-    "acierto_diciendo_siempre_si": 0.8743,
-    "predice_no": 24290
+    "auc_roc": 0.7456,
+    "auc_pr": 0.947,
+    "acierto_umbral_0_5": 0.8741,
+    "acierto_diciendo_siempre_si": 0.8742,
+    "predice_no": 24143
   },
   "iteraciones": 20,
   "variables": {
@@ -43,34 +43,34 @@
   },
   "coeficientes": {
     "log_longitud_texto": -0.5014,
-    "genero_indie": 0.4819,
-    "idioma_schinese": -0.3916,
-    "genero_adventure": -0.2522,
-    "genero_action": -0.2415,
+    "genero_indie": 0.4817,
+    "idioma_schinese": -0.3913,
+    "genero_adventure": -0.2518,
+    "genero_action": -0.2416,
     "acceso_anticipado": -0.1585,
-    "genero_casual": 0.1388,
-    "idioma_brazilian": 0.134,
-    "idioma_koreana": -0.1008,
-    "idioma_spanish": 0.0905,
-    "genero_rpg": 0.0877,
-    "idioma_polish": 0.0853,
-    "log_horas_al_resenar": 0.0603,
-    "genero_simulation": -0.0572,
-    "genero_strategy": 0.0319,
-    "compra_steam": 0.0262,
-    "idioma_french": 0.0257,
-    "idioma_turkish": 0.0166,
-    "recibido_gratis": 0.0146,
-    "sin_horas": -0.0096,
-    "idioma_russian": 0.0048,
+    "genero_casual": 0.1385,
+    "idioma_brazilian": 0.1347,
+    "idioma_koreana": -0.1005,
+    "idioma_spanish": 0.0904,
+    "genero_rpg": 0.0885,
+    "idioma_polish": 0.0862,
+    "log_horas_al_resenar": 0.0599,
+    "genero_simulation": -0.0567,
+    "genero_strategy": 0.032,
+    "compra_steam": 0.0265,
+    "idioma_french": 0.0255,
+    "idioma_turkish": 0.0171,
+    "recibido_gratis": 0.0153,
+    "sin_horas": -0.0098,
+    "idioma_russian": 0.0055,
     "idioma_german": 0.0017,
-    "idioma_english": -0.0004
+    "idioma_english": 0.0006
   },
-  "intercepto": 3.541,
+  "intercepto": 3.5394,
   "tiempos": {
-    "preparar_s": 19.1,
-    "entrenar_s": 232.1,
-    "evaluar_s": 54.1,
-    "total_s": 305.3
+    "preparar_s": 20.6,
+    "entrenar_s": 119.1,
+    "evaluar_s": 50.1,
+    "total_s": 189.8
   }
 }

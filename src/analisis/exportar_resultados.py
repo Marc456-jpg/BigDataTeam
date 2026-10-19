@@ -5,7 +5,7 @@ exportar_resultados.py · Copia los resultados pequeños de HDFS (/resultados) a
 la carpeta evidence/resultados del repositorio, para entregarlos en GitHub.
 
 Por qué existe: las respuestas a las preguntas Q1-Q3, el MapReduce, el informe
-de calidad, la comparativa CSV/Parquet y las métricas del ML se guardan en HDFS,
+de calidad, las comparativas (CSV/Parquet y MapReduce/RDD) y las métricas del ML se guardan en HDFS,
 que vive dentro de Docker y no se sube a GitHub. El enunciado pide una carpeta
 de evidencias con métricas y resultados. Este script deja una copia legible
 (CSV, TSV o JSON) en el repositorio.
@@ -43,6 +43,8 @@ def lista_de_resultados(cfg):
         (cfg["mapreduce"]["salida_rdd"], "rdd_positivos_por_juego.tsv", False),
         (cfg["etl"]["informe_calidad"], "calidad_etl_reviews.json", False),
         (res + "/comparativa/csv_vs_parquet.json", "comparativa_csv_vs_parquet.json", False),
+        # La escribe run_pipeline.py (paso 13): tiempos de MapReduce frente a RDD
+        (cfg["pipeline"]["comparativa_mr_rdd"], "comparativa_mapreduce_vs_rdd.json", False),
         (cfg["ml"]["salida_informe"], "ml_regresion_logistica.json", False),
     ]
 

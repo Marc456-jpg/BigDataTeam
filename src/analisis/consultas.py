@@ -42,8 +42,14 @@ VOTO_IMPOSIBLE = 4294967295          # 2^32 - 1: valor de contador roto en el or
 
 
 def guardar(df, ruta):
-    """Guarda un resultado pequeño como un único CSV con cabecera."""
-    df.coalesce(1).write.mode("overwrite").option("header", True).csv(ruta)
+    """Guarda un resultado pequeño como un único CSV con cabecera.
+
+    escape='"': una comilla dentro de un texto se escribe "" (estándar de los
+    CSV, el que entiende Excel) y no \" (lo que Spark hace por defecto).
+    Ejemplo: Arsi "Hakita" Patala -> "Arsi ""Hakita"" Patala" (tarea 5.7)."""
+    (df.coalesce(1).write.mode("overwrite")
+     .option("header", True).option("escape", '"')
+     .csv(ruta))
 
 
 def main():

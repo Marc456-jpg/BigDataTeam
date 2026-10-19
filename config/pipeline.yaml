@@ -39,6 +39,8 @@ hdfs:
   raw: /raw
   curada: /curada
   resultados: /resultados
+  # Cuarentena: filas que no pasan las reglas de calidad (decision 53)
+  cuarentena: /quarantine
 
 spark:
   # Direccion del master de Spark (contenedor spark-master, puerto 7077)
@@ -87,6 +89,10 @@ etl:
   fecha_maxima: "2021-12-31"
   # Informe de calidad de datos (en HDFS, zona resultados)
   informe_calidad: /resultados/calidad/etl_reviews.json
+  # Filas invalidas (corruptas, sin columna clave o con fecha fuera de rango),
+  # guardadas en JSON con una columna "motivo" para poder revisarlas
+  # (decision 53, aprobada por el profesor el 19 oct)
+  cuarentena: /quarantine/reviews
 
 mapreduce:
   # Entrada del job de MapReduce (apartado C): una linea por resena con
@@ -145,6 +151,10 @@ ml:
   min_pct_juegos_genero: 10
   # Maximo de iteraciones del entrenamiento (para antes si ya ha convergido)
   iteraciones_max: 50
+  # Tamano maximo (MB) de cada trozo al leer el Parquet (tarea 6.6). Con 128 MB
+  # (valor de Spark) el executor de 1 GB se quedo sin memoria con todo el
+  # dataset; con 32 MB cada tarea maneja unas 4 veces menos datos
+  mb_por_particion: 32
   # Resultados (zona resultados de HDFS)
   salida_informe: /resultados/ml/regresion_logistica.json
   salida_modelo: /resultados/ml/modelo_regresion_logistica
@@ -154,3 +164,10 @@ exportar:
   # pequenos de HDFS (Q1-Q3, MapReduce, calidad, comparativa, ML) para que
   # queden en GitHub. La crea src/analisis/exportar_resultados.py
   carpeta_local: evidence/resultados
+
+pipeline:
+  # Punto de entrada unico: python run_pipeline.py (decision 54)
+  # Segundos maximos de espera a que YARN este listo antes del MapReduce
+  espera_yarn_s: 240
+  # Comparacion automatica MapReduce frente a RDD (la escribe el paso 13)
+  comparativa_mr_rdd: /resultados/comparativa/mapreduce_vs_rdd.json
