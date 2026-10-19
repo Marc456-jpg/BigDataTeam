@@ -336,7 +336,7 @@ python run_pipeline.py --solo 11,12,13   # solo esos pasos (la comparativa neces
 - En los planes V2 y V3 solo cambia la estimación de filas de la agregación parcial (`Statistics(… rowCount=…)`), porque el Parquet nuevo tiene otro tamaño y se lee en otros trozos.
 - Los informes JSON cambian en los tiempos medidos y, el del ETL, también en los campos nuevos de la cuarentena.
 
-**Comprobado otra vez la noche del 19 al 20 oct**, con el código final (todo el entorno en `config/pipeline.yaml`): pasos 5-15 (`20261019_233334/`) y paso 7 (`20261020_011845/`). Según `git diff --stat`, solo cambiaron los 3 JSON que guardan tiempos (`comparativa_*` y `ml_regresion_logistica.json`); Q1-Q3, el MapReduce, el RDD, el informe de calidad y los 3 planes de `evidence/fase5/` salieron idénticos byte a byte.
+**Comprobado otra vez la noche del 19 al 20 oct**, con el código final (todo el entorno en `config/pipeline.yaml`): pasos 5-15 (`20261019_233334/`) y paso 7 (`20261020_011845/`). Según `git diff --stat`, solo cambiaron los 3 JSON que guardan tiempos (`comparativa_*` y `ml_regresion_logistica.json`); Q1-Q3, el MapReduce, el RDD, el informe de calidad y los 3 planes de `evidence/fase5/` salieron idénticos byte a byte (`evidence/fase8/8.1_12_git_status_diff_reejecucion_20oct.png`).
 
 **Mientras corre:**
 
@@ -604,7 +604,7 @@ Evidencias en `evidence/fase7/`: `7.1_00`-`7.1_16` para el escenario 1 y `7.2_00
 | `evidence/fase5/` | Q1-Q3, optimización de Q1: planes de ejecución y capturas de la Spark UI |
 | `evidence/fase6/` | ML: muestra del 10 %, modelo sin precio, ejecución completa (con y sin executors perdidos) |
 | `evidence/fase7/` | Medidas de memoria y disco para decidir el Desafío 2, y el propio Desafío 2 |
-| `evidence/fase8/` | Ejecución final: el disco C: durante los dos intentos, el diagnóstico tras el fallo, la compactación del disco de Docker (114,2 → 35,5 GB), el arranque sano y el executor de 1536 MiB en la web de Spark |
+| `evidence/fase8/` | Ejecución final: el disco C: durante los dos intentos, el diagnóstico tras el fallo, la compactación del disco de Docker (114,2 → 35,5 GB), el arranque sano, el executor de 1536 MiB en la web de Spark y el `git status` tras las reejecuciones (idempotencia: `8.1_11` y `8.1_12`) |
 | `evidence/ejecuciones/` | Registro (`pipeline.log`) y resumen (`resumen.json`) de cada ejecución del pipeline |
 | `evidence/resultados/` | Los resultados finales, copiados de HDFS |
 | `evidence/csv_primeras_lineas.txt` | Las 20 primeras líneas del CSV: reseñas multilínea y comillas dobladas |
