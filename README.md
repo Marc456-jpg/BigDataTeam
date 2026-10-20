@@ -6,7 +6,7 @@ Proyecto de la asignatura **Big Data & Cloud Computing** (Tecnun, Universidad de
 
 - Manuel Fernández Pérez-Ricarte (GitHub: ManuelFernandezPR)
 - Marc Pich-Aguilera Béjar (GitHub: Marc456-jpg)
-- Nora Cepas Zapico
+- Nora Cepas Zapico (GitHub: ncepaszapic-lang)
 
 **Documento de la entrega:** `docs/Memoria_Entrega1_SteamReviews.pdf` (arquitectura, evidencias de A a F, resultados, limitaciones y registro de decisiones).
 
